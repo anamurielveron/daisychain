@@ -43,10 +43,11 @@ void printBanner() {
 	std::cout << std::endl;
 
 	// Print the title and authors
-	printColor("Daisychain", YELLOW);
-	printColor(": A Command-Line Emulator for Process Scheduling", WHITE);
+	std::cout << "------------------------------------------------------------" << std::endl;
+	printColor(" Daisychain", YELLOW);
+	printColor(": A Command-Line Emulator", WHITE);
 	std::cout << std::endl;
-	printColor("Developed by ", WHITE);
+	printColor(" Developed by ", WHITE);
 	printColor("Ana", MAGENTA);
 	printColor(", ", WHITE);
 	printColor("Kaci", BLUE);
@@ -57,6 +58,7 @@ void printBanner() {
 	printColor("Liam", GREEN);
 	printColor(" for CSOPESY @ DLSU", WHITE);
 	std::cout << std::endl;
+	std::cout << "------------------------------------------------------------" << std::endl;
 
 	bannerFile.close();
 }
