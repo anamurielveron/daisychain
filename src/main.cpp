@@ -5,13 +5,78 @@
 #include <fstream>
 #include <string>
 
-
 #include "utils.h"
+
+/**
+* TEMPLATE COMMAND FUNCTIONS
+*/
+
+void initialize() {
+	printColor("\"initialize\" command recognized. Doing something...\n", YELLOW);
+	// TODO: Implement the initialize command
+}
+
+void screen() {
+	printColor("\"screen\" command recognized. Doing something...\n", YELLOW);
+	// TODO: Implement the screen command
+}
+
+void schedulerTest() {
+	printColor("\"scheduler-test\" command recognized. Doing something...\n", YELLOW);
+	// TODO: Implement the scheduler-test command
+}
+
+void schedulerStop() {
+	printColor("\"scheduler-stop\" command recognized. Doing something...\n", YELLOW);
+	// TODO: Implement the scheduler-stop command
+}
+
+void reportUtil() {
+	printColor("\"report-util\" command recognized. Doing something...\n", YELLOW);
+	// TODO: Implement the report-util command
+}
 
 int main()
 {
 	// Print welcome banner
 	printBanner();
+	printSubtitle();
+
+	while (true) {
+		std::string command;
+		printColor("~> ", CYAN);
+		std::getline(std::cin, command);
+
+		if (command == "help") {
+			printHelp();
+		}
+		else if (command == "initialize") {
+			initialize();
+		}
+		else if (command == "screen") {
+			screen();
+		}
+		else if (command == "scheduler-test") {
+			schedulerTest();
+		}
+		else if (command == "scheduler-stop") {
+			schedulerStop();
+		}
+		else if (command == "report-util") {
+			reportUtil();
+		}
+		else if (command == "clear") {
+			clear();
+		}
+		else if (command == "exit") {
+			printColor("Exiting...\n", RED);
+			break;
+		}
+		else {
+			printColor("Unknown command. Type 'help' for a list of commands.\n", RED);
+		}
+
+	}
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu

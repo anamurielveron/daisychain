@@ -1,11 +1,11 @@
 #include "utils.h"
+
 #include <iostream>
 #include <fstream>
 
-/*
+/**
 * COLOR UTILS
 */
-// ANSI color codes
 std::string getColorCode(ConsoleColor color) {
     switch (color) {
     case RED:     return "\033[31m";
@@ -24,7 +24,7 @@ void printColor(const std::string& text, ConsoleColor color) {
 	std::cout << getColorCode(color) << text << getColorCode(RESET);
 }
 
-/*
+/**
 *  PRINT BANNER
 */
 void printBanner() {
@@ -42,11 +42,16 @@ void printBanner() {
 
 	std::cout << std::endl;
 
-	// Print the title and authors
+	bannerFile.close();
+}
+
+/**
+*  PRINT SUBTITLE
+*/
+void printSubtitle() {
 	std::cout << "------------------------------------------------------------" << std::endl;
 	printColor(" Daisychain", YELLOW);
-	printColor(": A Command-Line Emulator", WHITE);
-	std::cout << std::endl;
+	printColor(": A Command-Line Emulator\n", WHITE);
 	printColor(" Developed by ", WHITE);
 	printColor("Ana", MAGENTA);
 	printColor(", ", WHITE);
@@ -56,9 +61,30 @@ void printBanner() {
 	printColor(", ", WHITE);
 	printColor("and ", WHITE);
 	printColor("Liam", GREEN);
-	printColor(" for CSOPESY @ DLSU", WHITE);
-	std::cout << std::endl;
+	printColor(" for CSOPESY @ DLSU\n", WHITE);
 	std::cout << "------------------------------------------------------------" << std::endl;
+	std::cout << std::endl;
+}
 
-	bannerFile.close();
+/**
+*  PRINT HELP
+*/
+void printHelp() {
+	printColor("Available commands:\n", YELLOW);
+	printColor("initialize\n", GREEN);
+	printColor("screen\n", GREEN);
+	printColor("scheduler-test\n", GREEN);
+	printColor("scheduler-stop\n", GREEN);
+	printColor("report-util\n", GREEN);
+	printColor("clear\n", GREEN);
+	printColor("exit\n", GREEN);
+}
+
+void clear() {
+#ifdef _WIN32
+	system("cls");
+#else
+	system("clear");
+#endif
+	printBanner();
 }
