@@ -36,6 +36,9 @@ void reportUtil() {
 	// TODO: Implement the report-util command
 }
 
+/**
+* MAIN FUNCTION
+*/
 int main()
 {
 	// Print welcome banner
