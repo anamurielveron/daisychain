@@ -40,6 +40,9 @@ void printSubtitle();
  */
 void printHelp();
 
+/**
+ * @brief Clears the terminal screen and re-prints the banner.
+ */
 void clear();
 
 #endif // UTILS_H

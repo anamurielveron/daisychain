@@ -80,6 +80,9 @@ void printHelp() {
 	printColor("exit\n", GREEN);
 }
 
+/**
+*  CLEAR SCREEN
+*/
 void clear() {
 #ifdef _WIN32
 	system("cls");
