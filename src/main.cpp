@@ -5,7 +5,14 @@
 #include <fstream>
 #include <string>
 
+#include <map> // for a hashmap
+#include <iomanip>
+#include <sstream>
+#include <windows.h>
+
 #include "utils.h"
+
+using namespace std;
 
 /**
 * TEMPLATE COMMAND FUNCTIONS
@@ -35,6 +42,34 @@ void reportUtil() {
 	printColor("\"report-util\" command recognized. Doing something...\n", YELLOW);
 	// TODO: Implement the report-util command
 }
+
+// Session struct to hold screen info
+struct Session {
+	string name;
+	int currentLine;
+	int totalLines;
+	string timestamp;
+};
+
+
+string getCurrentTimestamp() {
+	SYSTEMTIME st;
+	GetLocalTime(&st);
+	char buffer[100]; // to hold the time
+
+	//formats the time to 12 hour
+	string am_pm = (st.wHour >= 12) ? "PM" : "AM";
+	int hour = st.wHour % 12;
+	if (hour == 0) hour = 12;
+
+	sprintf_s(buffer, "%02d/%02d/%04d, %02d:%02d:%02d %s",
+		st.wMonth, st.wDay, st.wYear,
+		hour, st.wMinute, st.wSecond,
+		am_pm.c_str());
+
+	return string(buffer);
+}
+
 
 /**
 * MAIN FUNCTION
