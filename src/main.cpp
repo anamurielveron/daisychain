@@ -52,6 +52,7 @@ struct Session {
 };
 
 
+//Timestamp
 string getCurrentTimestamp() {
 	SYSTEMTIME st;
 	GetLocalTime(&st);
@@ -79,11 +80,14 @@ int main()
 	// Print welcome banner
 	printBanner();
 	printSubtitle();
+	printPlaceHolderConsoles();
+
 
 	while (true) {
 		std::string command;
 		printColor("~> ", CYAN);
 		std::getline(std::cin, command);
+
 
 		if (command == "help") {
 			printHelp();
