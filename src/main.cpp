@@ -23,30 +23,41 @@ using namespace std;
 // Session struct to hold screen info
 struct Session {
 	string name;
-	int currentLine;
+	string currentLine;
 	int totalLines;
 	string timestamp;
 };
+
+Session sessions[10];
 
 void initialize() {
 	printColor("\"initialize\" command recognized. Doing something...\n", YELLOW);
 	// TODO: Implement the initialize command
 }
 
-void screen(Session currentSession) {
+void screen(int currentSession) {
 	//printColor("\"screen\" command recognized. Doing something...\n", YELLOW);
 	// TODO: Implement the screen command
 
 	//Display session name and time created
-	printColor(currentSession.name + "\n", YELLOW);
-	printColor(currentSession.timestamp + "\n", YELLOW);
+	printColor(sessions[currentSession].name + "\n\n", YELLOW);
+	printColor(sessions[currentSession].timestamp + "\n", YELLOW);
+	cout << "Total commands happened on screen: " << sessions[currentSession].totalLines << "\n\n";
+	cout << "Previous command done: " << sessions[currentSession].currentLine << "\n\n";
+
+	printPlaceHolderConsoles();
 	while (true) {
 		std::string command;
 		printColor("~> ", CYAN);
 		std::getline(std::cin, command);
-		if (command == "exit") {
+		if (command == "X") {
 			printColor("Leaving Screen...\n", RED);
 			break;
+		}
+		else {
+			printColor("Doing something \n", YELLOW);
+			sessions[currentSession].totalLines++;
+			sessions[currentSession].currentLine = command;
 		}
 	}
 	system("cls");
@@ -88,13 +99,13 @@ string getCurrentTimestamp() {
 	return string(buffer);
 }
 
+
+
 /**
 * MAIN FUNCTION
 */
 int main()
 {
-	Session sessions[10];
-
 	//Holds the current index for new sessions
 	int currentSessionCount = 0;
 
@@ -131,17 +142,16 @@ int main()
 							break;
 						}
 					}
-
 					
 					if (!screenFound) {
 						//If session name does not exist, create new session
-						sessions[currentSessionCount] = { command.substr(command.find("-s") + 3), 0, 0, getCurrentTimestamp() };
+						sessions[currentSessionCount] = { command.substr(command.find("-s") + 3), "", 0, getCurrentTimestamp()};
 						system("cls");
-						screen(sessions[currentSessionCount]);
+						screen(currentSessionCount);
 						currentSessionCount++;
 					}
 					else {
-						printColor("Screen already exists...\n", RED);
+						printColor("Screen already exists...\n", MAGENTA);
 					}
 				}
 				else if (command.find("-r") != string::npos) {
@@ -159,10 +169,10 @@ int main()
 					if (screenFound) {
 						//If session name exists, resume session
 						system("cls");
-						screen(sessions[sessionToResume]);
+						screen(sessionToResume);
 					}
 					else {
-						printColor("Screen does not exist...\n", RED);
+						printColor("Screen does not exist...\n", MAGENTA);
 					}
 				}
 				else {
