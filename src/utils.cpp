@@ -96,6 +96,7 @@ void printShortcut(const std::string& key, const std::string& label) {
 	// Set keys and label to its respective colors
 	std::ostringstream keyStream;
 	keyStream << getColorCode(INVERTED) << key << getColorCode(RESET);
+
 	std::ostringstream labelStream;
 	labelStream << getColorCode(RESET) << label;
 
