@@ -20,6 +20,7 @@ using namespace std;
 * TEMPLATE COMMAND FUNCTIONS
 */
 
+// Session struct to hold screen info
 struct Session {
 	string name;
 	int currentLine;
@@ -35,6 +36,8 @@ void initialize() {
 void screen(Session currentSession) {
 	//printColor("\"screen\" command recognized. Doing something...\n", YELLOW);
 	// TODO: Implement the screen command
+
+	//Display session name and time created
 	printColor(currentSession.name + "\n", YELLOW);
 	printColor(currentSession.timestamp + "\n", YELLOW);
 	while (true) {
@@ -67,10 +70,6 @@ void reportUtil() {
 	// TODO: Implement the report-util command
 }
 
-// Session struct to hold screen info
-
-
-
 string getCurrentTimestamp() {
 	SYSTEMTIME st;
 	GetLocalTime(&st);
@@ -96,14 +95,17 @@ int main()
 {
 	Session sessions[10];
 
+	//Holds the current index for new sessions
 	int currentSessionCount = 0;
 
+	//Holds the index for which session to resume
 	int sessionToResume = 0;
 
 	bool screenFound = false;
-	// Print welcome banner
+	
 	while (true) 
 	{
+		// Print welcome banner
 		printBanner();
 		printSubtitle();
 
@@ -121,17 +123,18 @@ int main()
 			}
 			else if (command.find("screen") != string::npos) {
 				if (command.find("-s") != string::npos) {
-					//system("cls");
-					//screen();
-
-					//std::cout << "Creating new screen \"" << command.substr(command.find("-s") + 3) << "\"...\n";
+					
+					//Checks if session name already exists
 					for (Session session : sessions) {
 						if (session.name == command.substr(command.find("-s") + 3)) {
 							screenFound = true;
 							break;
 						}
 					}
+
+					
 					if (!screenFound) {
+						//If session name does not exist, create new session
 						sessions[currentSessionCount] = { command.substr(command.find("-s") + 3), 0, 0, getCurrentTimestamp() };
 						system("cls");
 						screen(sessions[currentSessionCount]);
@@ -143,6 +146,8 @@ int main()
 				}
 				else if (command.find("-r") != string::npos) {
 					sessionToResume = 0;
+
+					//Checks if session name already exists
 					for (Session session : sessions) {
 						if (session.name == command.substr(command.find("-r") + 3)) {
 							screenFound = true;
@@ -152,6 +157,7 @@ int main()
 					}
 
 					if (screenFound) {
+						//If session name exists, resume session
 						system("cls");
 						screen(sessions[sessionToResume]);
 					}
