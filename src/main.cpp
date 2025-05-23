@@ -1,9 +1,11 @@
 // daisychain.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
 
+//#include <stdlib.h>
 #include <iostream>
 #include <fstream>
 #include <string>
+//#include <bits/stdc++.h>
 
 #include <map> // for a hashmap
 #include <iomanip>
@@ -18,14 +20,39 @@ using namespace std;
 * TEMPLATE COMMAND FUNCTIONS
 */
 
+// Session struct to hold screen info
+struct Session {
+	string name;
+	int currentLine;
+	int totalLines;
+	string timestamp;
+};
+
 void initialize() {
 	printColor("\"initialize\" command recognized. Doing something...\n", YELLOW);
 	// TODO: Implement the initialize command
 }
 
-void screen() {
-	printColor("\"screen\" command recognized. Doing something...\n", YELLOW);
+void screen(Session currentSession) {
+	//printColor("\"screen\" command recognized. Doing something...\n", YELLOW);
 	// TODO: Implement the screen command
+
+	//Display session name and time created
+	printColor(currentSession.name + "\n", YELLOW);
+	printColor(currentSession.timestamp + "\n", YELLOW);
+	while (true) {
+		std::string command;
+		printColor("~> ", CYAN);
+		std::getline(std::cin, command);
+		if (command == "exit") {
+			printColor("Leaving Screen...\n", RED);
+			break;
+		}
+	}
+	system("cls");
+
+	printBanner();
+	printSubtitle();
 }
 
 void schedulerTest() {
@@ -43,16 +70,6 @@ void reportUtil() {
 	// TODO: Implement the report-util command
 }
 
-// Session struct to hold screen info
-struct Session {
-	string name;
-	int currentLine;
-	int totalLines;
-	string timestamp;
-};
-
-
-//Timestamp
 string getCurrentTimestamp() {
 	SYSTEMTIME st;
 	GetLocalTime(&st);
@@ -71,53 +88,109 @@ string getCurrentTimestamp() {
 	return string(buffer);
 }
 
-
 /**
 * MAIN FUNCTION
 */
 int main()
 {
-	// Print welcome banner
-	printBanner();
-	printSubtitle();
-	printPlaceHolderConsoles();
+	Session sessions[10];
 
+	//Holds the current index for new sessions
+	int currentSessionCount = 0;
 
-	while (true) {
-		std::string command;
-		printColor("~> ", CYAN);
-		std::getline(std::cin, command);
+	//Holds the index for which session to resume
+	int sessionToResume = 0;
 
+	bool screenFound = false;
+	
+	while (true) 
+	{
+		// Print welcome banner
+		printBanner();
+		printSubtitle();
 
-		if (command == "help") {
-			printHelp();
-		}
-		else if (command == "initialize") {
-			initialize();
-		}
-		else if (command == "screen") {
-			screen();
-		}
-		else if (command == "scheduler-test") {
-			schedulerTest();
-		}
-		else if (command == "scheduler-stop") {
-			schedulerStop();
-		}
-		else if (command == "report-util") {
-			reportUtil();
-		}
-		else if (command == "clear") {
-			clear();
-		}
-		else if (command == "exit") {
-			printColor("Exiting...\n", RED);
-			break;
-		}
-		else {
-			printColor("Unknown command. Type 'help' for a list of commands.\n", RED);
-		}
+		while (true) {
+			screenFound = false;
+			std::string command;
+			printColor("~> ", CYAN);
+			std::getline(std::cin, command);
 
+			if (command == "help") {
+				printHelp();
+			}
+			else if (command == "initialize") {
+				initialize();
+			}
+			else if (command.find("screen") != string::npos) {
+				if (command.find("-s") != string::npos) {
+					
+					//Checks if session name already exists
+					for (Session session : sessions) {
+						if (session.name == command.substr(command.find("-s") + 3)) {
+							screenFound = true;
+							break;
+						}
+					}
+
+					
+					if (!screenFound) {
+						//If session name does not exist, create new session
+						sessions[currentSessionCount] = { command.substr(command.find("-s") + 3), 0, 0, getCurrentTimestamp() };
+						system("cls");
+						screen(sessions[currentSessionCount]);
+						currentSessionCount++;
+					}
+					else {
+						printColor("Screen already exists...\n", RED);
+					}
+				}
+				else if (command.find("-r") != string::npos) {
+					sessionToResume = 0;
+
+					//Checks if session name already exists
+					for (Session session : sessions) {
+						if (session.name == command.substr(command.find("-r") + 3)) {
+							screenFound = true;
+							break;
+						}
+						sessionToResume++;
+					}
+
+					if (screenFound) {
+						//If session name exists, resume session
+						system("cls");
+						screen(sessions[sessionToResume]);
+					}
+					else {
+						printColor("Screen does not exist...\n", RED);
+					}
+				}
+				else {
+					printColor("Screen command not recognized....\n", RED);
+				}
+			}
+			else if (command == "scheduler-test") {
+				schedulerTest();
+			}
+			else if (command == "scheduler-stop") {
+				schedulerStop();
+			}
+			else if (command == "report-util") {
+				reportUtil();
+			}
+			else if (command == "clear") {
+				clear();
+			}
+			else if (command == "exit") {
+				printColor("Exiting...\n", RED);
+				break;
+			}
+			else {
+				printColor("Unknown command. Type 'help' for a list of commands.\n", RED);
+			}
+
+		}
+		break;
 	}
 }
 
