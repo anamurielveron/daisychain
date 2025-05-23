@@ -101,8 +101,6 @@ void printShortcut(const std::string& key, const std::string& label) {
 
 	// Combines the keys and label together
 	oss << std::left << std::setw(width) << (keyStream.str() + " " + labelStream.str());
-
-	// Print 
 	std::cout << oss.str();
 }
 
@@ -112,7 +110,7 @@ void printShortcut(const std::string& key, const std::string& label) {
 */
 void printPlaceHolderConsoles() {
 	std::vector<std::pair<std::string, std::string>> shortcuts = {
-	   {"^G", "Get Help"}, {"^O", "WriteOut"}, {"^R", "Read File"}, {"^Y", "Prev Page"},
+	   {"^G", "Get Help"}, {"^O", "WriteOut "}, {"^R", "Read File"}, {"^Y", "Prev Page"},
 	   {"^K", "Cut Text"}, {"^C", "Cur Pos"},  {"^X", "Exit"}, {"^J", "Justify"},  
 	   {"^W", "Where Is"},  {"^V", "Next Page"},{"^U", "UnCut Text"},{"^T", "To Spell"}
 	};
