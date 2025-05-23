@@ -1,9 +1,11 @@
 // daisychain.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
 
+//#include <stdlib.h>
 #include <iostream>
 #include <fstream>
 #include <string>
+//#include <bits/stdc++.h>
 
 #include <map> // for a hashmap
 #include <iomanip>
@@ -18,14 +20,36 @@ using namespace std;
 * TEMPLATE COMMAND FUNCTIONS
 */
 
+struct Session {
+	string name;
+	int currentLine;
+	int totalLines;
+	string timestamp;
+};
+
 void initialize() {
 	printColor("\"initialize\" command recognized. Doing something...\n", YELLOW);
 	// TODO: Implement the initialize command
 }
 
-void screen() {
-	printColor("\"screen\" command recognized. Doing something...\n", YELLOW);
+void screen(Session currentSession) {
+	//printColor("\"screen\" command recognized. Doing something...\n", YELLOW);
 	// TODO: Implement the screen command
+	printColor(currentSession.name + "\n", YELLOW);
+	printColor(currentSession.timestamp + "\n", YELLOW);
+	while (true) {
+		std::string command;
+		printColor("~> ", CYAN);
+		std::getline(std::cin, command);
+		if (command == "exit") {
+			printColor("Leaving Screen...\n", RED);
+			break;
+		}
+	}
+	system("cls");
+
+	printBanner();
+	printSubtitle();
 }
 
 void schedulerTest() {
@@ -44,12 +68,7 @@ void reportUtil() {
 }
 
 // Session struct to hold screen info
-struct Session {
-	string name;
-	int currentLine;
-	int totalLines;
-	string timestamp;
-};
+
 
 
 string getCurrentTimestamp() {
@@ -70,50 +89,102 @@ string getCurrentTimestamp() {
 	return string(buffer);
 }
 
-
 /**
 * MAIN FUNCTION
 */
 int main()
 {
+	Session sessions[10];
+
+	int currentSessionCount = 0;
+
+	int sessionToResume = 0;
+
+	bool screenFound = false;
 	// Print welcome banner
-	printBanner();
-	printSubtitle();
+	while (true) 
+	{
+		printBanner();
+		printSubtitle();
 
-	while (true) {
-		std::string command;
-		printColor("~> ", CYAN);
-		std::getline(std::cin, command);
+		while (true) {
+			screenFound = false;
+			std::string command;
+			printColor("~> ", CYAN);
+			std::getline(std::cin, command);
 
-		if (command == "help") {
-			printHelp();
-		}
-		else if (command == "initialize") {
-			initialize();
-		}
-		else if (command == "screen") {
-			screen();
-		}
-		else if (command == "scheduler-test") {
-			schedulerTest();
-		}
-		else if (command == "scheduler-stop") {
-			schedulerStop();
-		}
-		else if (command == "report-util") {
-			reportUtil();
-		}
-		else if (command == "clear") {
-			clear();
-		}
-		else if (command == "exit") {
-			printColor("Exiting...\n", RED);
-			break;
-		}
-		else {
-			printColor("Unknown command. Type 'help' for a list of commands.\n", RED);
-		}
+			if (command == "help") {
+				printHelp();
+			}
+			else if (command == "initialize") {
+				initialize();
+			}
+			else if (command.find("screen") != string::npos) {
+				if (command.find("-s") != string::npos) {
+					//system("cls");
+					//screen();
 
+					//std::cout << "Creating new screen \"" << command.substr(command.find("-s") + 3) << "\"...\n";
+					for (Session session : sessions) {
+						if (session.name == command.substr(command.find("-s") + 3)) {
+							screenFound = true;
+							break;
+						}
+					}
+					if (!screenFound) {
+						sessions[currentSessionCount] = { command.substr(command.find("-s") + 3), 0, 0, getCurrentTimestamp() };
+						system("cls");
+						screen(sessions[currentSessionCount]);
+						currentSessionCount++;
+					}
+					else {
+						printColor("Screen already exists...\n", RED);
+					}
+				}
+				else if (command.find("-r") != string::npos) {
+					sessionToResume = 0;
+					for (Session session : sessions) {
+						if (session.name == command.substr(command.find("-r") + 3)) {
+							screenFound = true;
+							break;
+						}
+						sessionToResume++;
+					}
+
+					if (screenFound) {
+						system("cls");
+						screen(sessions[sessionToResume]);
+					}
+					else {
+						printColor("Screen does not exist...\n", RED);
+					}
+				}
+				else {
+					printColor("Screen command not recognized....\n", RED);
+				}
+			}
+			else if (command == "scheduler-test") {
+				schedulerTest();
+			}
+			else if (command == "scheduler-stop") {
+				schedulerStop();
+			}
+			else if (command == "report-util") {
+				reportUtil();
+			}
+			else if (command == "clear") {
+				clear();
+			}
+			else if (command == "exit") {
+				printColor("Exiting...\n", RED);
+				break;
+			}
+			else {
+				printColor("Unknown command. Type 'help' for a list of commands.\n", RED);
+			}
+
+		}
+		break;
 	}
 }
 
