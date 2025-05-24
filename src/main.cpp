@@ -144,7 +144,7 @@ int main()
 				if (command.find("-s") != string::npos) {
 
 					//Checks if session name already exists
-					if (command.substr(command.find("-s") + 3) != "") {
+					if (command.substr(command.find("-s") + 2) != "" && command.substr(command.find("-s") + 3) != "") {
 						for (Session session : sessions) {
 							if (session.GetName() == command.substr(command.find("-s") + 3)) {
 								screenFound = true;
