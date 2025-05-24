@@ -48,9 +48,6 @@ void initialize() {
 }
 
 void Session::screen() {
-	//printColor("\"screen\" command recognized. Doing something...\n", YELLOW);
-	// TODO: Implement the screen command
-
 	//Display session name and time created
 	printColor(name + "\n\n", YELLOW);
 	printColor(timestamp + "\n", YELLOW);
