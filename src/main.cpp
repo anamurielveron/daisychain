@@ -207,7 +207,7 @@ int main()
 				printColor("Unknown command. Type 'help' for a list of commands.\n", RED);
 			}
 		}
-
+		break;
 	}
 }
 
