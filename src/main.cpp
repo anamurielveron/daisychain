@@ -18,9 +18,7 @@ using namespace std;
 * TEMPLATE COMMAND FUNCTIONS
 */
 
-<<<<<<< Updated upstream
-=======
-// Session struct to hold screen info
+// Session class that stores and displays the screen
 class Session {
 	string name;
 	string currentLine;
@@ -43,17 +41,11 @@ class Session {
 
 Session sessions[10];
 
->>>>>>> Stashed changes
 void initialize() {
 	printColor("\"initialize\" command recognized. Doing something...\n", YELLOW);
 	// TODO: Implement the initialize command
 }
 
-<<<<<<< Updated upstream
-void screen() {
-	printColor("\"screen\" command recognized. Doing something...\n", YELLOW);
-	// TODO: Implement the screen command
-=======
 void Session::screen() {
 	//printColor("\"screen\" command recognized. Doing something...\n", YELLOW);
 	// TODO: Implement the screen command
@@ -83,7 +75,6 @@ void Session::screen() {
 
 	printBanner();
 	printSubtitle();
->>>>>>> Stashed changes
 }
 
 void schedulerTest() {
@@ -100,14 +91,6 @@ void reportUtil() {
 	printColor("\"report-util\" command recognized. Doing something...\n", YELLOW);
 	// TODO: Implement the report-util command
 }
-
-// Session struct to hold screen info
-struct Session {
-	string name;
-	int currentLine;
-	int totalLines;
-	string timestamp;
-};
 
 
 string getCurrentTimestamp() {
@@ -138,12 +121,6 @@ int main()
 	printBanner();
 	printSubtitle();
 
-<<<<<<< Updated upstream
-	while (true) {
-		std::string command;
-		printColor("~> ", CYAN);
-		std::getline(std::cin, command);
-=======
 	//Holds the index for which session to resume
 	int sessionToResume = 0;
 
@@ -233,7 +210,6 @@ int main()
 			else {
 				printColor("Unknown command. Type 'help' for a list of commands.\n", RED);
 			}
->>>>>>> Stashed changes
 
 		if (command == "help") {
 			printHelp();

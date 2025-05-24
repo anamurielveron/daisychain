@@ -14,6 +14,7 @@ enum ConsoleColor {
     MAGENTA,
     CYAN,
     WHITE,
+    INVERTED,
     RESET
 };
 
@@ -39,6 +40,11 @@ void printSubtitle();
  * @brief Prints the help message containing available commands.
  */
 void printHelp();
+
+/**
+* @bref Prints the emulator's placeholder consoles
+*/
+void printPlaceHolderConsoles();
 
 /**
  * @brief Clears the terminal screen and re-prints the banner.
