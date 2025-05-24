@@ -39,6 +39,7 @@ class Session {
 		}
 };
 
+//array of sessions for individual screen
 Session sessions[10];
 
 void initialize() {
@@ -117,9 +118,7 @@ string getCurrentTimestamp() {
 */
 int main()
 {
-	// Print welcome banner
-	printBanner();
-	printSubtitle();
+	int currentSessionCount = 0;
 
 	//Holds the index for which session to resume
 	int sessionToResume = 0;
@@ -146,7 +145,7 @@ int main()
 			}
 			else if (command.find("screen") != string::npos) {
 				if (command.find("-s") != string::npos) {
-					
+
 					//Checks if session name already exists
 					for (Session session : sessions) {
 						if (session.GetName() == command.substr(command.find("-s") + 3)) {
@@ -154,7 +153,7 @@ int main()
 							break;
 						}
 					}
-					
+
 					if (!screenFound) {
 						//If session name does not exist, create new session
 						sessions[currentSessionCount].newSession(command.substr(command.find("-s") + 3), getCurrentTimestamp());
@@ -210,34 +209,6 @@ int main()
 			else {
 				printColor("Unknown command. Type 'help' for a list of commands.\n", RED);
 			}
-
-		if (command == "help") {
-			printHelp();
-		}
-		else if (command == "initialize") {
-			initialize();
-		}
-		else if (command == "screen") {
-			screen();
-		}
-		else if (command == "scheduler-test") {
-			schedulerTest();
-		}
-		else if (command == "scheduler-stop") {
-			schedulerStop();
-		}
-		else if (command == "report-util") {
-			reportUtil();
-		}
-		else if (command == "clear") {
-			clear();
-		}
-		else if (command == "exit") {
-			printColor("Exiting...\n", RED);
-			break;
-		}
-		else {
-			printColor("Unknown command. Type 'help' for a list of commands.\n", RED);
 		}
 
 	}
