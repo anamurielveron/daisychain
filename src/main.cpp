@@ -144,43 +144,53 @@ int main()
 				if (command.find("-s") != string::npos) {
 
 					//Checks if session name already exists
-					for (Session session : sessions) {
-						if (session.GetName() == command.substr(command.find("-s") + 3)) {
-							screenFound = true;
-							break;
+					if (command.substr(command.find("-s") + 3) != "") {
+						for (Session session : sessions) {
+							if (session.GetName() == command.substr(command.find("-s") + 3)) {
+								screenFound = true;
+								break;
+							}
+						}
+
+						if (!screenFound) {
+							//If session name does not exist, create new session
+							sessions[currentSessionCount].newSession(command.substr(command.find("-s") + 3), getCurrentTimestamp());
+							system("cls");
+							sessions[currentSessionCount].screen();
+							currentSessionCount++;
+						}
+						else {
+							printColor("Screen already exists...\n", MAGENTA);
 						}
 					}
-
-					if (!screenFound) {
-						//If session name does not exist, create new session
-						sessions[currentSessionCount].newSession(command.substr(command.find("-s") + 3), getCurrentTimestamp());
-						system("cls");
-						sessions[currentSessionCount].screen();
-						currentSessionCount++;
-					}
 					else {
-						printColor("Screen already exists...\n", MAGENTA);
+						printColor("Invalid screen name...\n", RED);
 					}
 				}
 				else if (command.find("-r") != string::npos) {
-					sessionToResume = 0;
+					if (command.substr(command.find("-r") + 2) != "" && command.substr(command.find("-r") + 3) != "") {
+						sessionToResume = 0;
 
-					//Checks if session name already exists
-					for (Session session : sessions) {
-						if (session.GetName() == command.substr(command.find("-r") + 3)) {
-							screenFound = true;
-							break;
+						//Checks if session name already exists
+						for (Session session : sessions) {
+							if (session.GetName() == command.substr(command.find("-r") + 3)) {
+								screenFound = true;
+								break;
+							}
+							sessionToResume++;
 						}
-						sessionToResume++;
-					}
 
-					if (screenFound) {
-						//If session name exists, resume session
-						system("cls");
-						sessions[sessionToResume].screen();
+						if (screenFound) {
+							//If session name exists, resume session
+							system("cls");
+							sessions[sessionToResume].screen();
+						}
+						else {
+							printColor("Screen does not exist...\n", MAGENTA);
+						}
 					}
 					else {
-						printColor("Screen does not exist...\n", MAGENTA);
+						printColor("Invalid screen name...\n", RED);
 					}
 				}
 				else {
