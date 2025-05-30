@@ -70,6 +70,7 @@ void printSubtitle() {
 *  PRINT HELP
 */
 void printHelp() {
+	std::cout << std::endl;
 	printColor("Available commands:\n", YELLOW);
 	printColor("initialize\n", GREEN);
 	printColor("screen\n", GREEN);
@@ -78,6 +79,7 @@ void printHelp() {
 	printColor("report-util\n", GREEN);
 	printColor("clear\n", GREEN);
 	printColor("exit\n", GREEN);
+	std::cout << std::endl;
 }
 
 /**

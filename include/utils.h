@@ -1,5 +1,4 @@
-#ifndef UTILS_H
-#define UTILS_H
+#pragma once
 
 #include <string>
 
@@ -44,5 +43,3 @@ void printHelp();
  * @brief Clears the terminal screen and re-prints the banner.
  */
 void clear();
-
-#endif // UTILS_H

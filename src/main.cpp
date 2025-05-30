@@ -76,15 +76,17 @@ string getCurrentTimestamp() {
 */
 int main()
 {
-	// Print welcome banner
+	// print welcome banner
 	printBanner();
 	printSubtitle();
 
 	while (true) {
+		// print input prompt
 		std::string command;
-		printColor("~> ", CYAN);
+		printColor("~> ", GREEN);
 		std::getline(std::cin, command);
 
+		// command processing
 		if (command == "help") {
 			printHelp();
 		}
@@ -107,7 +109,7 @@ int main()
 			clear();
 		}
 		else if (command == "exit") {
-			printColor("Exiting...\n", RED);
+			printColor("Bye!\n", RED);
 			break;
 		}
 		else {

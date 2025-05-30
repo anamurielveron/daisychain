@@ -1,5 +1,8 @@
 .vs/
 daisychain/
+x64/
+
+*.pdb
 
 # Prerequisites
 *.d
