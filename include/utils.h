@@ -41,7 +41,7 @@ void printSubtitle();
 void printHelp();
 
 /**
-* @bref Prints the emulator's placeholder consoles
+* @brief Prints the emulator's placeholder consoles
 */
 void printPlaceHolderConsoles();
 
@@ -49,3 +49,10 @@ void printPlaceHolderConsoles();
  * @brief Clears the terminal screen and re-prints the banner.
  */
 void clear();
+
+/**
+ * @brief Gets the current timestamp as a formatted string.
+ *
+ * @return std::string The current timestamp in MM/DD/YYYY, HH:MM:SS AM/PM format.
+ */
+std::string getCurrentTimestamp();
