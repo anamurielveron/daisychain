@@ -28,6 +28,71 @@ struct Session {
 	string timestamp;
 };
 
+// 14/06/2025 
+#include <queue>
+
+class Process {
+	int id;
+	int bt;
+	int currentProcessedBT = 0;;
+	string at;
+	int core;
+
+public:
+	bool processDone = false;
+	void NewProcess(int newId, int newBT, string timeArrived);
+	void IncreaseProcessBT();
+	void CreateNewFile();
+	int GetPID();
+	string GetAT();
+	int GetCurrentProgress();
+	int GetBT();
+	int GetCoreValue();
+	void SetCoreValue(int value);
+};
+
+void Process::NewProcess(int newId, int newBT, string timeArrived) {
+	id = newId;
+	bt = newBT;
+	at = timeArrived;
+}
+
+void Process::IncreaseProcessBT() {
+	if (currentProcessedBT < bt) {
+		currentProcessedBT++;
+	}
+}
+
+void Process::CreateNewFile() {
+
+}
+
+int Process::GetPID() {
+	return id;
+}
+
+string Process::GetAT() {
+	return at;
+}
+
+int Process::GetCurrentProgress() {
+	return currentProcessedBT;
+}
+
+int Process::GetBT() {
+	return bt;
+}
+
+int Process::GetCoreValue() {
+	return core;
+}
+
+void Process::SetCoreValue(int value) {
+	core = value;
+}
+
+// 14/06/2025
+
 Session sessions[10];
 
 void initialize() {
@@ -68,7 +133,91 @@ void screen(int currentSession) {
 
 void schedulerTest() {
 	printColor("\"scheduler-test\" command recognized. Doing something...\n", YELLOW);
-	// TODO: Implement the scheduler-test command
+
+	srand(time(0));
+	queue<Process> readyQueue;
+	queue<Process> doneQueue;
+	int createProcess;
+	int currentPidInc = 1;
+	Process cores[4];
+	int currentCoreFree = 0;
+	Process emptyProcess;
+	bool isAssigned = false;
+
+	emptyProcess.NewProcess(0, 0, "");
+
+	for (int i = 0; i < 4; i++) {
+		cores[i] = emptyProcess;
+	}
+
+	while (true) {
+		for (int i = 0; i < 4; i++) {
+			if (cores[i].GetBT() > 0) {
+				cores[i].IncreaseProcessBT();
+				if (cores[i].GetCurrentProgress() == cores[i].GetBT()) {
+					currentCoreFree = i;
+					cores[i].processDone = true;
+					if (readyQueue.empty() == 0) {
+						doneQueue.push(cores[i]);
+						readyQueue.front().SetCoreValue(currentCoreFree);
+						cores[i] = readyQueue.front();
+						readyQueue.pop();
+					}
+					else {
+						doneQueue.push(cores[i]);
+						cores[i] = emptyProcess;
+					}
+				}
+			}
+		}
+
+		createProcess = rand() % 100;
+		isAssigned = false;
+		if (currentPidInc <= 10) {
+			if (createProcess < 49) {
+				Process newProcess;
+
+				newProcess.NewProcess(currentPidInc, rand() % 10 + 1, "Insert arrival time");
+				currentPidInc++;
+
+				for (int i = 0; i < 4; i++) {
+					if (cores[i].GetBT() == 0) {
+						cores[i] = newProcess;
+						cores[i].SetCoreValue(i);
+						isAssigned = true;
+						break;
+					}
+				}
+
+				if (isAssigned == false) {
+					readyQueue.push(newProcess);
+				}
+			}
+		}
+
+		system("cls");
+
+		std::cout << "--------------------------------" << endl;
+		std::cout << "Running processes: " << endl;
+		for (int i = 0; i < 4; i++) {
+			if (cores[i].GetBT() > 0) {
+				std::cout << "process" << cores[i].GetPID() << "    " << cores[i].GetAT() << "    " << "Core: " << cores[i].GetCoreValue() << "    " << cores[i].GetCurrentProgress() << "/" << cores[i].GetBT() << endl;
+			}
+		}
+
+		std::cout << endl;
+
+		std::cout << "Finished processes: " << endl;
+		for (int i = 0; i < doneQueue.size(); i++) {
+			std::cout << "process" << doneQueue.front().GetPID() << "    " << doneQueue.front().GetAT() << "    " << "Core: " << doneQueue.front().GetCoreValue() << "    " << doneQueue.front().GetCurrentProgress() << "/" << doneQueue.front().GetBT() << endl;
+			doneQueue.push(doneQueue.front());
+			doneQueue.pop();
+		}
+
+		std::cout << "--------------------------------" << endl;
+
+		Sleep(850);
+	}
 }
 
 void schedulerStop() {
