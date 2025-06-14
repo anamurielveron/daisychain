@@ -64,6 +64,7 @@ void Process::IncreaseProcessBT() {
 	}
 }
 
+/*
 void Process::CreateNewFile() {
 	// Get Desktop path
 	char desktopPath[MAX_PATH];
@@ -80,6 +81,8 @@ void Process::CreateNewFile() {
 	}
 	file.close();
 }
+
+*/
 
 int Process::GetPID() {
 	return id;
@@ -171,7 +174,7 @@ void schedulerTest() {
 				if (cores[i].GetCurrentProgress() == cores[i].GetBT()) {
 					currentCoreFree = i;
 					cores[i].processDone = true;
-					cores[i].CreateNewFile();
+					//cores[i].CreateNewFile();
 					if (readyQueue.empty() == 0) {
 						doneQueue.push(cores[i]);
 						readyQueue.front().SetCoreValue(currentCoreFree);
@@ -277,8 +280,8 @@ int main()
 	int sessionToResume = 0;
 
 	bool screenFound = false;
-
-	while (true)
+	
+	while (true) 
 	{
 		// Print welcome banner
 		printBanner();
@@ -298,7 +301,7 @@ int main()
 			}
 			else if (command.find("screen") != string::npos) {
 				if (command.find("-s") != string::npos) {
-
+					
 					//Checks if session name already exists
 					for (Session session : sessions) {
 						if (session.name == command.substr(command.find("-s") + 3)) {
@@ -306,7 +309,7 @@ int main()
 							break;
 						}
 					}
-
+					
 					if (!screenFound) {
 						//If session name does not exist, create new session
 						sessions[currentSessionCount] = { command.substr(command.find("-s") + 3), "", 0, getCurrentTimestamp() };
