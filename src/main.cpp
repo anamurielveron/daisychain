@@ -1,4 +1,4 @@
-// daisychain.cpp : This file contains the 'main' function. Program execution begins and ends there.
+﻿// daisychain.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
 
 //#include <stdlib.h>
@@ -11,6 +11,7 @@
 #include <iomanip>
 #include <sstream>
 #include <windows.h>
+#include <shlobj.h> // For SHGetFolderPath
 
 #include "utils.h"
 
@@ -64,7 +65,20 @@ void Process::IncreaseProcessBT() {
 }
 
 void Process::CreateNewFile() {
+	// Get Desktop path
+	char desktopPath[MAX_PATH];
+	SHGetFolderPathA(NULL, CSIDL_DESKTOP, NULL, 0, desktopPath);
 
+	// Build folder and file path
+	string folderPath = string(desktopPath) + "\\TextFiles";
+	CreateDirectoryA(folderPath.c_str(), NULL);
+	string filePath = folderPath + "\\process" + to_string(id) + ".txt";
+
+	ofstream file(filePath);
+	for (int i = 0; i < bt; i++) {
+		file << "Hello World from Core " << core << endl;
+	}
+	file.close();
 }
 
 int Process::GetPID() {
@@ -157,6 +171,7 @@ void schedulerTest() {
 				if (cores[i].GetCurrentProgress() == cores[i].GetBT()) {
 					currentCoreFree = i;
 					cores[i].processDone = true;
+					cores[i].CreateNewFile();
 					if (readyQueue.empty() == 0) {
 						doneQueue.push(cores[i]);
 						readyQueue.front().SetCoreValue(currentCoreFree);
@@ -262,8 +277,8 @@ int main()
 	int sessionToResume = 0;
 
 	bool screenFound = false;
-	
-	while (true) 
+
+	while (true)
 	{
 		// Print welcome banner
 		printBanner();
@@ -283,7 +298,7 @@ int main()
 			}
 			else if (command.find("screen") != string::npos) {
 				if (command.find("-s") != string::npos) {
-					
+
 					//Checks if session name already exists
 					for (Session session : sessions) {
 						if (session.name == command.substr(command.find("-s") + 3)) {
@@ -291,10 +306,10 @@ int main()
 							break;
 						}
 					}
-					
+
 					if (!screenFound) {
 						//If session name does not exist, create new session
-						sessions[currentSessionCount] = { command.substr(command.find("-s") + 3), "", 0, getCurrentTimestamp()};
+						sessions[currentSessionCount] = { command.substr(command.find("-s") + 3), "", 0, getCurrentTimestamp() };
 						system("cls");
 						screen(currentSessionCount);
 						currentSessionCount++;
@@ -352,14 +367,3 @@ int main()
 		break;
 	}
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
