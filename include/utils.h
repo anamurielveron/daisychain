@@ -1,5 +1,4 @@
-#ifndef UTILS_H
-#define UTILS_H
+#pragma once
 
 #include <string>
 
@@ -14,6 +13,7 @@ enum ConsoleColor {
     MAGENTA,
     CYAN,
     WHITE,
+    INVERTED,
     RESET
 };
 
@@ -41,8 +41,18 @@ void printSubtitle();
 void printHelp();
 
 /**
+* @brief Prints the emulator's placeholder consoles
+*/
+void printPlaceHolderConsoles();
+
+/**
  * @brief Clears the terminal screen and re-prints the banner.
  */
 void clear();
 
-#endif // UTILS_H
+/**
+ * @brief Gets the current timestamp as a formatted string.
+ *
+ * @return std::string The current timestamp in MM/DD/YYYY, HH:MM:SS AM/PM format.
+ */
+std::string getCurrentTimestamp();
