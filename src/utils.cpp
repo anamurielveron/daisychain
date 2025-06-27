@@ -6,7 +6,7 @@
 #include <string>
 #include <iomanip>
 #include <sstream>
-#include <windows.h>
+#include <windows.h> // For SYSTEMTIME and GetLocalTime
 
 /**
 * COLOR UTILS
@@ -31,7 +31,7 @@ void printColor(const std::string& text, ConsoleColor color) {
 }
 
 /**
-*  PRINT BANNER
+* PRINT BANNER
 */
 void printBanner() {
 	std::ifstream bannerFile("data/banner.txt");
@@ -52,7 +52,7 @@ void printBanner() {
 }
 
 /**
-*  PRINT SUBTITLE
+* PRINT SUBTITLE
 */
 void printSubtitle() {
 	std::cout << "------------------------------------------------------------" << std::endl;
@@ -73,7 +73,7 @@ void printSubtitle() {
 }
 
 /**
-*  PRINT HELP
+* PRINT HELP
 */
 void printHelp() {
 	std::cout << std::endl;
@@ -82,7 +82,7 @@ void printHelp() {
 	printColor("screen -s <name>\n", GREEN);
 	printColor("screen -r <name>\n", GREEN);
 	printColor("screen -ls\n", GREEN);
-	printColor("scheduler-test\n", GREEN);
+	printColor("scheduler-start\n", GREEN); // Renamed from scheduler-test
 	printColor("scheduler-stop\n", GREEN);
 	printColor("report-util\n", GREEN);
 	printColor("clear\n", GREEN);
@@ -128,7 +128,7 @@ void printPlaceHolderConsoles() {
 }
 
 /**
-*  CLEAR SCREEN
+* CLEAR SCREEN
 */
 void clear() {
 #ifdef _WIN32

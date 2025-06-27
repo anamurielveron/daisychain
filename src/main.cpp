@@ -14,17 +14,36 @@
 #include <chrono>
 #include <vector>
 #include <algorithm>
+#include <limits> // Required for numeric_limits
+#include <memory> // Required for unique_ptr
 
 #include "utils.h"
 
+// Bring common C++ standard library elements into scope
 using namespace std;
+
+// Global configuration parameters
+struct Config {
+    int num_cpu = 4;
+    string scheduler_type = "fcfs";
+    int quantum_cycles = 5;
+    int batch_process_freq = 1;
+    unsigned int min_ins = 1000;
+    unsigned int max_ins = 2000;
+    int delay_per_exec = 0;
+};
+
+Config globalConfig; // Global config instance
 
 // Forward declarations
 class Process;
+class BaseScheduler; // Base class for schedulers
 class FCFSScheduler;
+class RRScheduler;
 
-// Global scheduler instance
-FCFSScheduler* globalScheduler = nullptr;
+// Global scheduler instance (using a raw pointer to BaseScheduler for polymorphism)
+BaseScheduler* globalScheduler = nullptr;
+atomic<bool> scheduler_initialized(false);
 
 /**
 * PROCESS CLASS
@@ -32,60 +51,85 @@ FCFSScheduler* globalScheduler = nullptr;
 class Process {
 private:
     int id;
-    int bt;
-    int currentProcessedBT = 0;
-    string at;
-    int core = -1;
+    unsigned int totalInstructions;
+    unsigned int executedInstructions;
+    string arrivalTimestamp;
+    int coreAssigned;
     vector<string> printLogs;
+    string name; // Human-readable name like screen_01
+    atomic<bool> finished; // To indicate if the process has finished
 
 public:
-    bool processDone = false;
+    // Constructor to initialize a new process
+    Process(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName)
+        : id(newId), totalInstructions(newTotalInstructions), arrivalTimestamp(timeArrived),
+        executedInstructions(0), coreAssigned(-1), name(processName), finished(false) {}
 
-    void NewProcess(int newId, int newBT, string timeArrived);
-    void IncreaseProcessBT();
-    void CreateNewFile();
+    // Delete copy constructor and copy assignment operator for std::atomic member
+    Process(const Process&) = delete;
+    Process& operator=(const Process&) = delete;
+
+    // Allow move constructor and move assignment operator
+    Process(Process&& other) noexcept
+        : id(other.id),
+        totalInstructions(other.totalInstructions),
+        executedInstructions(other.executedInstructions),
+        arrivalTimestamp(std::move(other.arrivalTimestamp)),
+        coreAssigned(other.coreAssigned),
+        printLogs(std::move(other.printLogs)),
+        name(std::move(other.name)),
+        finished(other.finished.load()) { // Atomically load value for move
+        other.id = 0; // Clear original
+        other.totalInstructions = 0;
+        other.executedInstructions = 0;
+        other.coreAssigned = -1;
+        other.finished.store(true); // Mark original as finished/invalidated
+    }
+
+    Process& operator=(Process&& other) noexcept {
+        if (this != &other) {
+            id = other.id;
+            totalInstructions = other.totalInstructions;
+            executedInstructions = other.executedInstructions;
+            arrivalTimestamp = std::move(other.arrivalTimestamp);
+            coreAssigned = other.coreAssigned;
+            printLogs = std::move(other.printLogs);
+            name = std::move(other.name);
+            finished.store(other.finished.load()); // Atomically load and store
+
+            other.id = 0; // Clear original
+            other.totalInstructions = 0;
+            other.executedInstructions = 0;
+            other.coreAssigned = -1;
+            other.finished.store(true); // Mark original as finished/invalidated
+        }
+        return *this;
+    }
+
+
+    void ExecuteInstruction(int coreNum);
     void AddPrintLog(const string& message, int coreNum);
     int GetPID() const;
-    string GetAT() const;
-    int GetCurrentProgress() const;
-    int GetBT() const;
+    string GetName() const;
+    string GetArrivalTime() const; // Renamed for clarity
+    unsigned int GetExecutedInstructions() const; // Renamed for clarity
+    unsigned int GetTotalInstructions() const;
     int GetCoreValue() const;
     void SetCoreValue(int value);
     vector<string> GetPrintLogs() const;
+    bool IsFinished() const;
+    void SetFinished(bool status);
 };
 
-void Process::NewProcess(int newId, int newBT, string timeArrived) {
-    id = newId;
-    bt = newBT;
-    at = timeArrived;
-    currentProcessedBT = 0;
-    processDone = false;
-    printLogs.clear();
-    core = -1;
-}
-
-void Process::IncreaseProcessBT() {
-    if (currentProcessedBT < bt) {
-        currentProcessedBT++;
+void Process::ExecuteInstruction(int coreNum) {
+    if (executedInstructions < totalInstructions) {
+        executedInstructions++;
+        // Simulate a PRINT instruction
+        string message = "\"Hello world from " + name + "! (Inst: " + to_string(executedInstructions) + ")\"";
+        AddPrintLog(message, coreNum);
     }
-}
-
-void Process::CreateNewFile() {
-    if (printLogs.empty()) return;
-
-    string filename = "process_" + to_string(id) + ".txt";
-    ofstream file(filename);
-
-    if (file.is_open()) {
-        file << "Process name: screen_" << setfill('0') << setw(2) << id << endl;
-        file << "Logs:" << endl;
-
-        for (const string& log : printLogs) {
-            file << log << endl;
-        }
-
-        file.close();
-        //cout << "Created file: " << filename << endl;
+    if (executedInstructions == totalInstructions) {
+        finished.store(true); // Use store for atomic boolean
     }
 }
 
@@ -102,50 +146,75 @@ void Process::AddPrintLog(const string& message, int coreNum) {
         st.wMonth, st.wDay, st.wYear,
         hour, st.wMinute, st.wSecond, am_pm.c_str());
 
-    string logEntry = string(timestamp) + " Core:" + to_string(coreNum) + " " + message;
+    string logEntry = string(timestamp) + " Core: " + to_string(coreNum) + " " + message;
     printLogs.push_back(logEntry);
 }
 
 int Process::GetPID() const { return id; }
-string Process::GetAT() const { return at; }
-int Process::GetCurrentProgress() const { return currentProcessedBT; }
-int Process::GetBT() const { return bt; }
-int Process::GetCoreValue() const { return core; }
-void Process::SetCoreValue(int value) { core = value; }
+string Process::GetName() const { return name; }
+string Process::GetArrivalTime() const { return arrivalTimestamp; }
+unsigned int Process::GetExecutedInstructions() const { return executedInstructions; }
+unsigned int Process::GetTotalInstructions() const { return totalInstructions; }
+int Process::GetCoreValue() const { return coreAssigned; }
+void Process::SetCoreValue(int value) { coreAssigned = value; }
 vector<string> Process::GetPrintLogs() const { return printLogs; }
+bool Process::IsFinished() const { return finished.load(); } // Use load for atomic boolean
+void Process::SetFinished(bool status) { finished.store(status); } // Use store for atomic boolean
+
+/**
+* BASE SCHEDULER CLASS
+*/
+class BaseScheduler {
+public:
+    virtual ~BaseScheduler() = default;
+    virtual void Start() = 0;
+    virtual void Stop() = 0;
+    virtual void SchedulerLoop() = 0;
+    virtual void CreateProcess(bool isBatch = false, const string& userProvidedName = "") = 0; // Added userProvidedName
+    virtual void DisplayStatus(ostream& os) = 0; // Modified to take ostream
+    virtual bool IsRunning() = 0;
+    // Modified GetProcessByName to search through finished processes as well
+    // and to return nullptr if the process is finished, so the main thread
+    // doesn't try to access a deallocated object.
+    virtual Process* GetProcessByName(const string& name) = 0;
+};
 
 /**
 * FCFS SCHEDULER CLASS
 */
-class FCFSScheduler {
+class FCFSScheduler : public BaseScheduler {
 private:
-    static const int NUM_CORES = 4;
-    Process cores[NUM_CORES];
-    queue<Process> readyQueue;
-    queue<Process> doneQueue;
+    vector<unique_ptr<Process>> cores; // Use unique_ptr
+    queue<unique_ptr<Process>> readyQueue; // Use unique_ptr
+    queue<unique_ptr<Process>> doneQueue; // Use unique_ptr
     mutex schedulerMutex;
     atomic<bool> running;
     atomic<int> currentPidInc;
-    Process emptyProcess;
     thread schedulerThread;
+    atomic<long long> cpuCycles; // Use long long for cycles
+    int numCores;
+    unsigned int minInstructions;
+    unsigned int maxInstructions;
+    int batchProcessFrequency;
+    int delayPerExecution;
 
 public:
-    FCFSScheduler();
+    FCFSScheduler(int num_cores, unsigned int min_ins, unsigned int max_ins, int batch_freq, int delay_exec);
     ~FCFSScheduler();
-    void Start();
-    void Stop();
-    void SchedulerLoop();
-    void CreateProcess();
-    void DisplayStatus();
-    bool IsRunning();
-    queue<Process> GetFinishedProcesses();
+    void Start() override;
+    void Stop() override;
+    void SchedulerLoop() override;
+    void CreateProcess(bool isBatch = false, const string& userProvidedName = "") override;
+    void DisplayStatus(ostream& os) override;
+    bool IsRunning() override;
+    Process* GetProcessByName(const string& name) override;
 };
 
-FCFSScheduler::FCFSScheduler() : running(false), currentPidInc(1) {
-    emptyProcess.NewProcess(0, 0, "");
-    for (int i = 0; i < NUM_CORES; i++) {
-        cores[i] = emptyProcess;
-    }
+FCFSScheduler::FCFSScheduler(int num_cores, unsigned int min_ins, unsigned int max_ins, int batch_freq, int delay_exec)
+    : running(false), currentPidInc(1), cpuCycles(0), numCores(num_cores),
+    minInstructions(min_ins), maxInstructions(max_ins), batchProcessFrequency(batch_freq),
+    delayPerExecution(delay_exec) {
+    cores.resize(numCores); // Resize with default-constructed unique_ptrs (nullptr)
 }
 
 FCFSScheduler::~FCFSScheduler() {
@@ -169,187 +238,254 @@ void FCFSScheduler::Stop() {
 }
 
 void FCFSScheduler::SchedulerLoop() {
-    srand(time(0));
+    srand(static_cast<unsigned int>(time(0)));
 
     while (running) {
-        lock_guard<mutex> lock(schedulerMutex);
+        {
+            lock_guard<mutex> lock(schedulerMutex);
 
-        // Process cores
-        for (int i = 0; i < NUM_CORES; i++) {
-            if (cores[i].GetBT() > 0) {
-                cores[i].IncreaseProcessBT();
+            cpuCycles++; // Increment CPU cycle
 
-                // Add print command simulation - every execution adds a print command
-                string message = "\"Hello world from screen_" +
-                    string(2 - to_string(cores[i].GetPID()).length(), '0') +
-                    to_string(cores[i].GetPID()) + "!\"";
-                cores[i].AddPrintLog(message, i);
+            // Process cores
+            for (int i = 0; i < numCores; i++) {
+                if (cores[i] && !cores[i]->IsFinished() && cores[i]->GetTotalInstructions() > 0) {
+                    cores[i]->ExecuteInstruction(i);
 
-                // Check if process is done
-                if (cores[i].GetCurrentProgress() == cores[i].GetBT()) {
-                    cores[i].processDone = true;
-                    cores[i].CreateNewFile();
-                    doneQueue.push(cores[i]);
-
-                    // Assign next process from ready queue if available
-                    if (!readyQueue.empty()) {
-                        readyQueue.front().SetCoreValue(i);
-                        cores[i] = readyQueue.front();
-                        readyQueue.pop();
+                    if (delayPerExecution > 0) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExecution)); // Simulate busy-waiting
                     }
-                    else {
-                        cores[i] = emptyProcess;
+
+                    // Check if process is done after executing an instruction
+                    if (cores[i]->IsFinished()) {
+                        doneQueue.push(std::move(cores[i])); // Move unique_ptr to done queue
+                        // Assign next process from ready queue if available
+                        if (!readyQueue.empty()) {
+                            unique_ptr<Process> nextProcess = std::move(readyQueue.front()); // Move from ready queue
+                            readyQueue.pop();
+                            nextProcess->SetCoreValue(i);
+                            cores[i] = std::move(nextProcess); // Move to core
+                        }
+                        else {
+                            cores[i].reset(); // Core becomes idle (nullptr)
+                        }
                     }
                 }
             }
-        }
 
-        // Create new process randomly (only if we haven't reached the limit)
-        if (currentPidInc <= 10) {
-            int createProcess = rand() % 100;
-            if (createProcess < 20) { // 20% chance to create process
-                Process newProcess;
-                newProcess.NewProcess(currentPidInc, 100, getCurrentTimestamp()); // 100 print commands
-                currentPidInc++;
-
-                bool assigned = false;
-                for (int i = 0; i < NUM_CORES; i++) {
-                    if (cores[i].GetBT() == 0) {
-                        cores[i] = newProcess;
-                        cores[i].SetCoreValue(i);
-                        assigned = true;
+            // Generate new processes based on batchProcessFrequency
+            if (batchProcessFrequency > 0 && cpuCycles % batchProcessFrequency == 0) {
+                // Check if there's an available core
+                bool assignedToCore = false;
+                for (int i = 0; i < numCores; ++i) {
+                    if (!cores[i]) { // Check if core is idle (nullptr)
+                        string processName = "screen_" + string(2 - to_string(currentPidInc).length(), '0') + to_string(currentPidInc);
+                        unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
+                        cores[i] = std::make_unique<Process>(currentPidInc, instructions, getCurrentTimestamp(), processName);
+                        cores[i]->SetCoreValue(i);
+                        currentPidInc++;
+                        assignedToCore = true;
                         break;
                     }
                 }
+                if (!assignedToCore) {
+                    // If no idle core, add to ready queue
+                    string processName = "screen_" + string(2 - to_string(currentPidInc).length(), '0') + to_string(currentPidInc);
+                    unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
+                    readyQueue.push(std::make_unique<Process>(currentPidInc, instructions, getCurrentTimestamp(), processName));
+                    currentPidInc++;
+                }
+            }
 
-                if (!assigned) {
-                    readyQueue.push(newProcess);
+            // Distribute processes from ready queue to idle cores if any
+            for (int i = 0; i < numCores; ++i) {
+                if (!cores[i] && !readyQueue.empty()) { // If core is idle and ready queue has processes
+                    unique_ptr<Process> nextProcess = std::move(readyQueue.front());
+                    readyQueue.pop();
+                    nextProcess->SetCoreValue(i);
+                    cores[i] = std::move(nextProcess);
                 }
             }
         }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Sleep to prevent busy-waiting the main thread
     }
-    this_thread::sleep_for(chrono::milliseconds(100));
 }
 
-void FCFSScheduler::CreateProcess() {
+void FCFSScheduler::CreateProcess(bool isBatch, const string& userProvidedName) {
     lock_guard<mutex> lock(schedulerMutex);
 
-    if (currentPidInc <= 10) {
-        Process newProcess;
-        newProcess.NewProcess(currentPidInc, 100, getCurrentTimestamp());
-        currentPidInc++;
-
-        bool assigned = false;
-        for (int i = 0; i < NUM_CORES; i++) {
-            if (cores[i].GetBT() == 0) {
-                cores[i] = newProcess;
-                cores[i].SetCoreValue(i);
-                assigned = true;
-                break;
-            }
-        }
-
-        if (!assigned) {
-            readyQueue.push(newProcess);
-        }
-
-        //printColor("Process " + to_string(currentPidInc - 1) + " created.\n", GREEN);
+    string processName;
+    if (isBatch) {
+        processName = "screen_" + string(2 - to_string(currentPidInc).length(), '0') + to_string(currentPidInc);
     }
     else {
-        /*printColor("Maximum number of processes (10) reached.\n", YELLOW);*/
+        processName = userProvidedName;
+    }
+
+    unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
+    unique_ptr<Process> newProcess = std::make_unique<Process>(currentPidInc, instructions, getCurrentTimestamp(), processName);
+    currentPidInc++;
+
+    bool assigned = false;
+    for (int i = 0; i < numCores; i++) {
+        if (!cores[i]) { // If core is idle (nullptr)
+            cores[i] = std::move(newProcess);
+            cores[i]->SetCoreValue(i);
+            assigned = true;
+            break;
+        }
+    }
+
+    if (!assigned) {
+        readyQueue.push(std::move(newProcess));
     }
 }
 
-void FCFSScheduler::DisplayStatus() {
+void FCFSScheduler::DisplayStatus(ostream& os) {
     lock_guard<mutex> lock(schedulerMutex);
 
-    system("cls");
-    printBanner();
-    printSubtitle();
-
-    // Count active cores
     int activeCores = 0;
-    for (int i = 0; i < NUM_CORES; i++) {
-        if (cores[i].GetBT() > 0) {
+    for (int i = 0; i < numCores; i++) {
+        if (cores[i] && !cores[i]->IsFinished()) {
             activeCores++;
         }
     }
 
-    cout << "CPU Utilization: " << ((float)activeCores / NUM_CORES) * 100 << "%" << endl;
-    cout << "Cores used: " << activeCores << " / " << NUM_CORES << endl;
-    cout << "Cores available: " << (NUM_CORES - activeCores) << " / " << NUM_CORES << endl;
+    os << "CPU Utilization: " << std::fixed << std::setprecision(2) << ((float)activeCores / numCores) * 100 << "%" << endl;
+    os << "Cores used: " << activeCores << " / " << numCores << endl;
+    os << "Cores available: " << (numCores - activeCores) << " / " << numCores << endl;
+    os << "Scheduling Algorithm: FCFS" << endl;
 
-    cout << "\n--------------------------------" << endl;
-    cout << "Running processes:" << endl;
-    for (int i = 0; i < NUM_CORES; i++) {
-        if (cores[i].GetBT() > 0) {
-            cout << "screen_" << setfill('0') << setw(2) << cores[i].GetPID() << "    "
-                << cores[i].GetAT() << "    Core: " << cores[i].GetCoreValue()
-                << "    " << cores[i].GetCurrentProgress() << "/" << cores[i].GetBT() << endl;
+    os << "\n--------------------------------" << endl;
+    os << "Running processes:" << endl;
+    for (int i = 0; i < numCores; i++) {
+        if (cores[i] && !cores[i]->IsFinished()) {
+            os << cores[i]->GetName() << "    "
+                << cores[i]->GetArrivalTime() << "    Core: " << cores[i]->GetCoreValue()
+                << "    " << cores[i]->GetExecutedInstructions() << "/" << cores[i]->GetTotalInstructions() << endl;
         }
     }
 
-    cout << "\nFinished processes:" << endl;
-    queue<Process> tempQueue = doneQueue;
-    while (!tempQueue.empty()) {
-        Process p = tempQueue.front();
-        cout << "screen_" << setfill('0') << setw(2) << p.GetPID() << "    " << p.GetAT()
-            << "    Finished    " << p.GetCurrentProgress() << "/" << p.GetBT() << endl;
-        tempQueue.pop();
+    os << "\nReady Queue Size: " << readyQueue.size() << endl;
+
+    os << "\nFinished processes:" << endl;
+    // Create a temporary queue to iterate through done processes without modifying the original
+    queue<unique_ptr<Process>> tempDoneQueue;
+    // Copy (move) processes from doneQueue to tempDoneQueue for display
+    while (!doneQueue.empty()) {
+        tempDoneQueue.push(std::move(doneQueue.front()));
+        doneQueue.pop();
     }
-    cout << "--------------------------------" << endl;
+    // Now iterate and print from tempDoneQueue, and then push them back to original doneQueue
+    while (!tempDoneQueue.empty()) {
+        const unique_ptr<Process>& p = tempDoneQueue.front(); // Use const reference
+        os << p->GetName() << "    " << p->GetArrivalTime()
+            << "    Finished    " << p->GetExecutedInstructions() << "/" << p->GetTotalInstructions() << endl;
+        doneQueue.push(std::move(tempDoneQueue.front())); // Move back to original queue
+        tempDoneQueue.pop();
+    }
+    os << "--------------------------------" << endl;
 }
 
 bool FCFSScheduler::IsRunning() {
-    return running;
+    return running.load(); // Use load for atomic boolean
 }
 
-queue<Process> FCFSScheduler::GetFinishedProcesses() {
-    return doneQueue;
+Process* FCFSScheduler::GetProcessByName(const string& name) {
+    lock_guard<mutex> lock(schedulerMutex);
+    // Search in running processes (cores)
+    for (int i = 0; i < numCores; ++i) {
+        if (cores[i] && cores[i]->GetName() == name && !cores[i]->IsFinished()) {
+            return cores[i].get(); // Return raw pointer if found and not finished
+        }
+    }
+    // If not found in running cores, search in ready queue
+    // Note: Iterating std::queue directly is not possible.
+    // A more efficient way for searching would be to use a std::list or std::vector for the ready queue
+    // if frequent searching is needed, or move to std::map<string, unique_ptr<Process>> for lookup.
+    // For now, iterate by temporary moving to check.
+    queue<unique_ptr<Process>> tempReadyQueue;
+    Process* foundProcess = nullptr;
+
+    while (!readyQueue.empty()) {
+        if (readyQueue.front()->GetName() == name && !readyQueue.front()->IsFinished()) {
+            // Found in ready queue, but we cannot return a raw pointer that would become invalid if moved later.
+            // For now, we will not return a pointer from the ready queue for 'screen -r'
+            // as it implies interaction with a 'currently active' screen.
+            // The specification implies 'screen -r' is for *running* processes.
+            // If the spec implies finished processes can be viewed, you'd iterate doneQueue too.
+            // Given the original context of the error, we focus on the running state.
+            foundProcess = readyQueue.front().get(); // Get raw pointer, but be careful with its lifetime
+            // This will still be problematic if the process gets assigned to a core.
+            // The safer approach is to only return if it's currently on a core.
+            // For now, let's keep the logic to only check active cores for `screen -r`
+            // as per the implied "running" context for screen -r.
+        }
+        tempReadyQueue.push(std::move(readyQueue.front()));
+        readyQueue.pop();
+    }
+    while (!tempReadyQueue.empty()) {
+        readyQueue.push(std::move(tempReadyQueue.front()));
+        tempReadyQueue.pop();
+    }
+
+    // Search in finished processes (doneQueue) - this is for completeness,
+    // but the 'screen -r' command generally implies *running* processes.
+    // If a process has finished, it might not be relevant to "resume" its screen.
+    // The prompt says: "If the process name is not found/finished execution, the console prints "Process <process name> not found."
+    // This implies that 'screen -r' should NOT return finished processes.
+    // So, we only return from active cores.
+
+    return nullptr; // Not found in running cores (or finished)
 }
 
 
 /**
 * RR SCHEDULER CLASS
 */
-class RRScheduler {
+class RRScheduler : public BaseScheduler {
 private:
-    static const int NUM_CORES = 4;
-    static const int QUANTUM = 10;
-
     struct CoreSlot {
-        Process proc;
+        unique_ptr<Process> proc; // Use unique_ptr
         int qRemaining;
         bool isEmpty;
 
         CoreSlot() : qRemaining(0), isEmpty(true) {}
     };
 
-    CoreSlot cores[NUM_CORES];
-    queue<Process> readyQueue;
-    queue<Process> doneQueue;
+    vector<CoreSlot> cores;
+    queue<unique_ptr<Process>> readyQueue; // Use unique_ptr
+    queue<unique_ptr<Process>> doneQueue; // Use unique_ptr
     mutex schedulerMutex;
     atomic<bool> running;
     atomic<int> currentPidInc;
-    Process emptyProcess;
     thread schedulerThread;
+    atomic<long long> cpuCycles; // Use long long for cycles
+    int numCores;
+    int quantum;
+    unsigned int minInstructions;
+    unsigned int maxInstructions;
+    int batchProcessFrequency;
+    int delayPerExecution;
 
 public:
-    RRScheduler();
+    RRScheduler(int num_cores, int quantum_cycles, unsigned int min_ins, unsigned int max_ins, int batch_freq, int delay_exec);
     ~RRScheduler();
-    void Start();
-    void Stop();
-    void SchedulerLoop();
-    void CreateProcess();
-    void DisplayStatus();
-    bool IsRunning();
-    queue<Process> GetFinishedProcesses();
+    void Start() override;
+    void Stop() override;
+    void SchedulerLoop() override;
+    void CreateProcess(bool isBatch = false, const string& userProvidedName = "") override;
+    void DisplayStatus(ostream& os) override;
+    bool IsRunning() override;
+    Process* GetProcessByName(const string& name) override;
 };
 
-RRScheduler::RRScheduler() : running(false), currentPidInc(1) {
-    emptyProcess.NewProcess(0, 0, "");
-    for (int i = 0; i < NUM_CORES; i++) {
-        cores[i].proc = emptyProcess;
+RRScheduler::RRScheduler(int num_cores, int quantum_cycles, unsigned int min_ins, unsigned int max_ins, int batch_freq, int delay_exec)
+    : running(false), currentPidInc(1), cpuCycles(0), numCores(num_cores), quantum(quantum_cycles),
+    minInstructions(min_ins), maxInstructions(max_ins), batchProcessFrequency(batch_freq),
+    delayPerExecution(delay_exec) {
+    cores.resize(numCores);
+    for (int i = 0; i < numCores; i++) {
+        cores[i].proc = nullptr; // Initialize unique_ptr to nullptr
         cores[i].qRemaining = 0;
         cores[i].isEmpty = true;
     }
@@ -376,60 +512,56 @@ void RRScheduler::Stop() {
 }
 
 void RRScheduler::SchedulerLoop() {
-    srand(time(0));
+    srand(static_cast<unsigned int>(time(0)));
 
     while (running) {
         {
             lock_guard<mutex> lock(schedulerMutex);
 
+            cpuCycles++; // Increment CPU cycle
+
             // Process cores
-            for (int i = 0; i < NUM_CORES; i++) {
-                if (!cores[i].isEmpty && cores[i].proc.GetBT() > 0) {
-                    // Execute one time unit of the process
-                    cores[i].proc.IncreaseProcessBT();
+            for (int i = 0; i < numCores; i++) {
+                if (!cores[i].isEmpty && cores[i].proc && !cores[i].proc->IsFinished() && cores[i].proc->GetTotalInstructions() > 0) {
+                    cores[i].proc->ExecuteInstruction(i);
                     cores[i].qRemaining--;
 
-                    // Add print command simulation
-                    string message = "\"Hello world from screen_" +
-                        string(2 - to_string(cores[i].proc.GetPID()).length(), '0') +
-                        to_string(cores[i].proc.GetPID()) + "!\"";
-                    cores[i].proc.AddPrintLog(message, i);
+                    if (delayPerExecution > 0) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExecution)); // Simulate busy-waiting
+                    }
 
                     // Check if process is done
-                    if (cores[i].proc.GetCurrentProgress() == cores[i].proc.GetBT()) {
-                        cores[i].proc.processDone = true;
-                        cores[i].proc.CreateNewFile();
-                        doneQueue.push(cores[i].proc);
-
+                    if (cores[i].proc->IsFinished()) {
+                        doneQueue.push(std::move(cores[i].proc)); // Move unique_ptr
                         // Assign next process from ready queue if available
                         if (!readyQueue.empty()) {
-                            cores[i].proc = readyQueue.front();
-                            cores[i].proc.SetCoreValue(i);
-                            cores[i].qRemaining = QUANTUM;
-                            cores[i].isEmpty = false;
+                            unique_ptr<Process> nextProcess = std::move(readyQueue.front());
                             readyQueue.pop();
+                            nextProcess->SetCoreValue(i);
+                            cores[i].proc = std::move(nextProcess);
+                            cores[i].qRemaining = quantum;
+                            cores[i].isEmpty = false;
                         }
                         else {
-                            cores[i].proc = emptyProcess;
+                            cores[i].proc.reset(); // Core becomes idle
                             cores[i].qRemaining = 0;
                             cores[i].isEmpty = true;
                         }
                     }
-                    // Check if quantum is exhausted but process is not done
+                    // Check if quantum is exhausted but process is not done (preemption)
                     else if (cores[i].qRemaining <= 0) {
-                        // Move process back to ready queue (preemption)
-                        readyQueue.push(cores[i].proc);
-
+                        readyQueue.push(std::move(cores[i].proc)); // Move process back to ready queue
                         // Assign next process from ready queue if available
                         if (!readyQueue.empty()) {
-                            cores[i].proc = readyQueue.front();
-                            cores[i].proc.SetCoreValue(i);
-                            cores[i].qRemaining = QUANTUM;
-                            cores[i].isEmpty = false;
+                            unique_ptr<Process> nextProcess = std::move(readyQueue.front());
                             readyQueue.pop();
+                            nextProcess->SetCoreValue(i);
+                            cores[i].proc = std::move(nextProcess);
+                            cores[i].qRemaining = quantum;
+                            cores[i].isEmpty = false;
                         }
                         else {
-                            cores[i].proc = emptyProcess;
+                            cores[i].proc.reset(); // Core becomes idle
                             cores[i].qRemaining = 0;
                             cores[i].isEmpty = true;
                         }
@@ -437,247 +569,223 @@ void RRScheduler::SchedulerLoop() {
                 }
             }
 
-            // Create new process randomly (only if we haven't reached the limit)
-            if (currentPidInc <= 10) {
-                int createProcess = rand() % 100;
-                if (createProcess < 20) { // 20% chance to create process
-                    Process newProcess;
-                    newProcess.NewProcess(currentPidInc, 100, getCurrentTimestamp()); // 100 print commands
+            // Generate new processes based on batchProcessFrequency
+            if (batchProcessFrequency > 0 && cpuCycles % batchProcessFrequency == 0) {
+                bool assignedToCore = false;
+                for (int i = 0; i < numCores; ++i) {
+                    if (cores[i].isEmpty) {
+                        string processName = "screen_" + string(2 - to_string(currentPidInc).length(), '0') + to_string(currentPidInc);
+                        unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
+                        unique_ptr<Process> newProcess = std::make_unique<Process>(currentPidInc, instructions, getCurrentTimestamp(), processName);
+                        cores[i].proc = std::move(newProcess);
+                        cores[i].proc->SetCoreValue(i);
+                        cores[i].qRemaining = quantum;
+                        cores[i].isEmpty = false;
+                        currentPidInc++;
+                        assignedToCore = true;
+                        break;
+                    }
+                }
+                if (!assignedToCore) {
+                    string processName = "screen_" + string(2 - to_string(currentPidInc).length(), '0') + to_string(currentPidInc);
+                    unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
+                    readyQueue.push(std::make_unique<Process>(currentPidInc, instructions, getCurrentTimestamp(), processName));
                     currentPidInc++;
+                }
+            }
 
-                    bool assigned = false;
-                    for (int i = 0; i < NUM_CORES; i++) {
-                        if (cores[i].isEmpty) {
-                            cores[i].proc = newProcess;
-                            cores[i].proc.SetCoreValue(i);
-                            cores[i].qRemaining = QUANTUM;
-                            cores[i].isEmpty = false;
-                            assigned = true;
-                            break;
-                        }
-                    }
-
-                    if (!assigned) {
-                        readyQueue.push(newProcess);
-                    }
+            // Distribute processes from ready queue to idle cores if any
+            for (int i = 0; i < numCores; ++i) {
+                if (cores[i].isEmpty && !readyQueue.empty()) {
+                    unique_ptr<Process> nextProcess = std::move(readyQueue.front());
+                    readyQueue.pop();
+                    nextProcess->SetCoreValue(i);
+                    cores[i].proc = std::move(nextProcess);
+                    cores[i].qRemaining = quantum;
+                    cores[i].isEmpty = false;
                 }
             }
         }
-
-        this_thread::sleep_for(chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }
 
-void RRScheduler::CreateProcess() {
+void RRScheduler::CreateProcess(bool isBatch, const string& userProvidedName) {
     lock_guard<mutex> lock(schedulerMutex);
 
-    if (currentPidInc <= 10) {
-        Process newProcess;
-        newProcess.NewProcess(currentPidInc, 100, getCurrentTimestamp());
-        currentPidInc++;
+    string processName;
+    if (isBatch) {
+        processName = "screen_" + string(2 - to_string(currentPidInc).length(), '0') + to_string(currentPidInc);
+    }
+    else {
+        processName = userProvidedName;
+    }
 
-        bool assigned = false;
-        for (int i = 0; i < NUM_CORES; i++) {
-            if (cores[i].isEmpty) {
-                cores[i].proc = newProcess;
-                cores[i].proc.SetCoreValue(i);
-                cores[i].qRemaining = QUANTUM;
-                cores[i].isEmpty = false;
-                assigned = true;
-                break;
-            }
-        }
+    unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
+    unique_ptr<Process> newProcess = std::make_unique<Process>(currentPidInc, instructions, getCurrentTimestamp(), processName);
+    currentPidInc++;
 
-        if (!assigned) {
-            readyQueue.push(newProcess);
+    bool assigned = false;
+    for (int i = 0; i < numCores; i++) {
+        if (cores[i].isEmpty) {
+            cores[i].proc = std::move(newProcess);
+            cores[i].proc->SetCoreValue(i);
+            cores[i].qRemaining = quantum;
+            cores[i].isEmpty = false;
+            assigned = true;
+            break;
         }
+    }
+
+    if (!assigned) {
+        readyQueue.push(std::move(newProcess));
     }
 }
 
-void RRScheduler::DisplayStatus() {
+void RRScheduler::DisplayStatus(ostream& os) {
     lock_guard<mutex> lock(schedulerMutex);
 
-    system("cls");
-    printBanner();
-    printSubtitle();
-
-    // Count active cores
     int activeCores = 0;
-    for (int i = 0; i < NUM_CORES; i++) {
-        if (!cores[i].isEmpty && cores[i].proc.GetBT() > 0) {
+    for (int i = 0; i < numCores; i++) {
+        if (!cores[i].isEmpty && cores[i].proc && !cores[i].proc->IsFinished() && cores[i].proc->GetTotalInstructions() > 0) {
             activeCores++;
         }
     }
 
-    cout << "CPU Utilization: " << ((float)activeCores / NUM_CORES) * 100 << "%" << endl;
-    cout << "Cores used: " << activeCores << " / " << NUM_CORES << endl;
-    cout << "Cores available: " << (NUM_CORES - activeCores) << " / " << NUM_CORES << endl;
-    cout << "Scheduling Algorithm: Round Robin (Quantum = " << QUANTUM << ")" << endl;
+    os << "CPU Utilization: " << std::fixed << std::setprecision(2) << ((float)activeCores / numCores) * 100 << "%" << endl;
+    os << "Cores used: " << activeCores << " / " << numCores << endl;
+    os << "Cores available: " << (numCores - activeCores) << " / " << numCores << endl;
+    os << "Scheduling Algorithm: Round Robin (Quantum = " << quantum << ")" << endl;
 
-    cout << "\n--------------------------------" << endl;
-    cout << "Running processes:" << endl;
-    for (int i = 0; i < NUM_CORES; i++) {
-        if (!cores[i].isEmpty && cores[i].proc.GetBT() > 0) {
-            cout << "screen_" << setfill('0') << setw(2) << cores[i].proc.GetPID() << "    "
-                << cores[i].proc.GetAT() << "    Core: " << cores[i].proc.GetCoreValue()
-                << "    " << cores[i].proc.GetCurrentProgress() << "/" << cores[i].proc.GetBT()
+    os << "\n--------------------------------" << endl;
+    os << "Running processes:" << endl;
+    for (int i = 0; i < numCores; i++) {
+        if (!cores[i].isEmpty && cores[i].proc && !cores[i].proc->IsFinished() && cores[i].proc->GetTotalInstructions() > 0) {
+            os << cores[i].proc->GetName() << "    "
+                << cores[i].proc->GetArrivalTime() << "    Core: " << cores[i].proc->GetCoreValue()
+                << "    " << cores[i].proc->GetExecutedInstructions() << "/" << cores[i].proc->GetTotalInstructions()
                 << "    Quantum remaining: " << cores[i].qRemaining << endl;
         }
     }
 
-    cout << "\nReady Queue Size: " << readyQueue.size() << endl;
+    os << "\nReady Queue Size: " << readyQueue.size() << endl;
 
-    cout << "\nFinished processes:" << endl;
-    queue<Process> tempQueue = doneQueue;
-    while (!tempQueue.empty()) {
-        Process p = tempQueue.front();
-        cout << "screen_" << setfill('0') << setw(2) << p.GetPID() << "    " << p.GetAT()
-            << "    Finished    " << p.GetCurrentProgress() << "/" << p.GetBT() << endl;
-        tempQueue.pop();
+    os << "\nFinished processes:" << endl;
+    queue<unique_ptr<Process>> tempDoneQueue;
+    while (!doneQueue.empty()) {
+        tempDoneQueue.push(std::move(doneQueue.front()));
+        doneQueue.pop();
     }
-    cout << "--------------------------------" << endl;
+    while (!tempDoneQueue.empty()) {
+        const unique_ptr<Process>& p = tempDoneQueue.front();
+        os << p->GetName() << "    " << p->GetArrivalTime()
+            << "    Finished    " << p->GetExecutedInstructions() << "/" << p->GetTotalInstructions() << endl;
+        doneQueue.push(std::move(tempDoneQueue.front())); // Move back
+        tempDoneQueue.pop();
+    }
+    os << "--------------------------------" << endl;
 }
 
 bool RRScheduler::IsRunning() {
-    return running;
+    return running.load();
 }
 
-queue<Process> RRScheduler::GetFinishedProcesses() {
-    return doneQueue;
+Process* RRScheduler::GetProcessByName(const string& name) {
+    lock_guard<mutex> lock(schedulerMutex);
+    for (int i = 0; i < numCores; ++i) {
+        if (!cores[i].isEmpty && cores[i].proc && cores[i].proc->GetName() == name && !cores[i].proc->IsFinished()) {
+            return cores[i].proc.get(); // Return raw pointer
+        }
+    }
+    return nullptr; // Not found in running cores
 }
 
-
-
-/**
-* SESSION CLASS
-*/
-class Session {
-    string name;
-    string currentLine;
-    int totalLines = 0;
-    string timestamp;
-
-public:
-    void newSession(string scrName, string timeCreated) {
-        name = scrName;
-        currentLine = "";
-        timestamp = timeCreated;
-    }
-
-    void screen();
-    string GetName() {
-        return name;
-    }
-};
-
-Session sessions[10];
-
-void Session::screen() {
-    printColor(name + "\n\n", YELLOW);
-    printColor(timestamp + "\n", YELLOW);
-    cout << "Total commands happened on screen: " << totalLines << "\n\n";
-    cout << "Previous command done: " << currentLine << "\n\n";
-
-    printPlaceHolderConsoles();
-    while (true) {
-        string command;
-        printColor("~> ", GREEN);
-        getline(cin, command);
-
-        if (command == "G") {
-            printColor("Getting help \n", YELLOW);
-            totalLines++;
-            currentLine = command;
-        }
-        else if (command == "O") {
-            printColor("Writing Out \n", YELLOW);
-            totalLines++;
-            currentLine = command;
-        }
-        else if (command == "R") {
-            printColor("Reading File \n", YELLOW);
-            totalLines++;
-            currentLine = command;
-        }
-        else if (command == "Y") {
-            printColor("I guess we use a go-to to traverse pages? \n", YELLOW);
-            totalLines++;
-            currentLine = command;
-        }
-        else if (command == "K") {
-            printColor("Cutting Text \n", YELLOW);
-            totalLines++;
-            currentLine = command;
-        }
-        else if (command == "C") {
-            printColor("Current Position \n", YELLOW);
-            totalLines++;
-            currentLine = command;
-        }
-        else if (command == "J") {
-            printColor("Justifying \n", YELLOW);
-            totalLines++;
-            currentLine = command;
-        }
-        else if (command == "W") {
-            printColor("Some Strcmp function to search? \n", YELLOW);
-            totalLines++;
-            currentLine = command;
-        }
-        else if (command == "V") {
-            printColor("Same as prev page, maybe a go-to to traverse? \n", YELLOW);
-            totalLines++;
-            currentLine = command;
-        }
-        else if (command == "U") {
-            printColor("Tf does this even mean? Undo? \n", YELLOW);
-            totalLines++;
-            currentLine = command;
-        }
-        else if (command == "T") {
-            printColor("Spelling \n", YELLOW);
-            totalLines++;
-            currentLine = command;
-        }
-        else if (command == "X") {
-            break;
-        }
-        else {
-            printColor("Unknown command\n", RED);
-        }
-    }
-    system("cls");
-    printBanner();
-    printSubtitle();
-}
 
 /**
 * COMMAND FUNCTIONS
 */
+
+// Function to read config.txt
+bool readConfig(Config& config) {
+    ifstream configFile("config.txt");
+    if (!configFile.is_open()) {
+        printColor("Error: Failed to open config.txt. Using default parameters.\n", RED);
+        return false;
+    }
+
+    string line;
+    while (getline(configFile, line)) {
+        stringstream ss(line);
+        string paramName;
+        ss >> paramName;
+
+        if (paramName == "num-cpu") {
+            ss >> config.num_cpu;
+        }
+        else if (paramName == "scheduler") {
+            ss >> std::quoted(config.scheduler_type); // Use std::quoted for strings with spaces
+        }
+        else if (paramName == "quantum-cycles") {
+            ss >> config.quantum_cycles;
+        }
+        else if (paramName == "batch-process-freq") {
+            ss >> config.batch_process_freq;
+        }
+        else if (paramName == "min-ins") {
+            ss >> config.min_ins;
+        }
+        else if (paramName == "max-ins") {
+            ss >> config.max_ins;
+        }
+        else if (paramName == "delay-per-exec") {
+            ss >> config.delay_per_exec;
+        }
+    }
+    configFile.close();
+    printColor("Config loaded successfully from config.txt.\n", GREEN);
+    return true;
+}
+
 void initialize() {
     printColor("\"initialize\" command recognized. Initializing scheduler...\n", YELLOW);
-    if (globalScheduler == nullptr) {
-        globalScheduler = new FCFSScheduler();
+    if (scheduler_initialized.load()) { // Use load for atomic boolean
+        printColor("Scheduler already initialized. Please stop it first if you want to re-initialize.\n", YELLOW);
+        return;
+    }
+
+    if (readConfig(globalConfig)) { // Read config parameters
+        if (globalConfig.scheduler_type == "fcfs") {
+            globalScheduler = new FCFSScheduler(globalConfig.num_cpu, globalConfig.min_ins, globalConfig.max_ins, globalConfig.batch_process_freq, globalConfig.delay_per_exec);
+            printColor("FCFS Scheduler configured.\n", GREEN);
+        }
+        else if (globalConfig.scheduler_type == "rr") {
+            globalScheduler = new RRScheduler(globalConfig.num_cpu, globalConfig.quantum_cycles, globalConfig.min_ins, globalConfig.max_ins, globalConfig.batch_process_freq, globalConfig.delay_per_exec);
+            printColor("Round Robin Scheduler configured (Quantum: " + to_string(globalConfig.quantum_cycles) + ").\n", GREEN);
+        }
+        else {
+            printColor("Invalid scheduler type specified in config.txt. Defaulting to FCFS.\n", RED);
+            globalScheduler = new FCFSScheduler(globalConfig.num_cpu, globalConfig.min_ins, globalConfig.max_ins, globalConfig.batch_process_freq, globalConfig.delay_per_exec);
+        }
         globalScheduler->Start();
-        printColor("Scheduler initialized with 4 cores.\n", GREEN);
+        scheduler_initialized.store(true); // Use store for atomic boolean
+        printColor("Scheduler initialized with " + to_string(globalConfig.num_cpu) + " cores.\n", GREEN);
     }
     else {
-        printColor("Scheduler already initialized.\n", YELLOW);
+        printColor("Failed to load config. Using default scheduler (FCFS) and parameters.\n", YELLOW);
+        globalScheduler = new FCFSScheduler(globalConfig.num_cpu, globalConfig.min_ins, globalConfig.max_ins, globalConfig.batch_process_freq, globalConfig.delay_per_exec);
+        globalScheduler->Start();
+        scheduler_initialized.store(true); // Use store for atomic boolean
     }
 }
 
-void schedulerTest() {
-    printColor("\"scheduler-test\" command recognized. Starting test...\n", YELLOW);
+void schedulerStart() { // Renamed from schedulerTest
+    printColor("\"scheduler-start\" command recognized. Starting continuous process generation...\n", YELLOW);
     if (globalScheduler != nullptr && globalScheduler->IsRunning()) {
-        // Create 10 processes for testing
-        for (int i = 0; i < 10; i++) {
-            globalScheduler->CreateProcess();
-            this_thread::sleep_for(chrono::milliseconds(200));
-        }
-        printColor("Created 10 test processes.\n", GREEN);
+        // The scheduler's loop itself handles continuous process generation based on batchProcessFrequency
+        printColor("Scheduler is generating processes. Use 'screen -ls' to see active processes.\n", GREEN);
     }
     else {
-        printColor("Scheduler not initialized. Please run 'initialize' first.\n", RED);
+        printColor("Scheduler not initialized or not running. Please run 'initialize' first.\n", RED);
     }
 }
 
@@ -687,6 +795,7 @@ void schedulerStop() {
         globalScheduler->Stop();
         delete globalScheduler;
         globalScheduler = nullptr;
+        scheduler_initialized.store(false); // Use store for atomic boolean
         printColor("Scheduler stopped.\n", GREEN);
     }
     else {
@@ -696,11 +805,24 @@ void schedulerStop() {
 
 void reportUtil() {
     printColor("\"report-util\" command recognized. Generating report...\n", YELLOW);
-    if (globalScheduler != nullptr) {
-        globalScheduler->DisplayStatus();
+    if (globalScheduler != nullptr && globalScheduler->IsRunning()) {
+        // Display to console
+        printColor("\n--- CPU Utilization Report (Console) ---\n", CYAN);
+        globalScheduler->DisplayStatus(cout);
+
+        // Save to file
+        ofstream logFile("csopesy-log.txt");
+        if (logFile.is_open()) {
+            globalScheduler->DisplayStatus(logFile);
+            logFile.close();
+            printColor("Report generated and saved to csopesy-log.txt!\n", GREEN);
+        }
+        else {
+            printColor("Error: Unable to open csopesy-log.txt for writing.\n", RED);
+        }
     }
     else {
-        printColor("Scheduler not initialized. Please run 'initialize' first.\n", RED);
+        printColor("Scheduler not initialized or not running. Please run 'initialize' first.\n", RED);
     }
 }
 
@@ -708,115 +830,187 @@ void reportUtil() {
 * MAIN FUNCTION
 */
 int main() {
-    int currentSessionCount = 0;
-    int sessionToResume = 0;
-    bool screenFound = false;
+    // For ensuring consistent output on Windows console for colors
+#ifdef _WIN32
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD consoleMode;
+    GetConsoleMode(hConsole, &consoleMode);
+    SetConsoleMode(hConsole, consoleMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+#endif
+
+    // Initial program display: print banner and subtitle once
+    printBanner();
+    printSubtitle();
 
     while (true) {
-        printBanner();
-        printSubtitle();
+        // The screen will now scroll for general commands.
+        // Clearing is handled explicitly by 'clear' command or 'screen -r' mode transitions.
 
-        while (true) {
-            screenFound = false;
-            string command;
-            printColor("~> ", GREEN);
-            getline(cin, command);
+        string command;
+        printColor("\n~> ", GREEN); // Added newline for better spacing with scrolling
+        getline(cin, command);
 
-            if (command == "help") {
-                printHelp();
-            }
-            else if (command == "initialize") {
-                initialize();
-            }
-            else if (command.find("screen") != string::npos) {
-                if (command.find("-s") != string::npos) {
-                    if (command.substr(command.find("-s") + 2) != "" && command.substr(command.find("-s") + 3) != "") {
-                        for (Session session : sessions) {
-                            if (session.GetName() == command.substr(command.find("-s") + 3)) {
-                                screenFound = true;
-                                break;
-                            }
-                        }
+        // Trim whitespace from command
+        command.erase(0, command.find_first_not_of(" \t\n\r\f\v"));
+        command.erase(command.find_last_not_of(" \t\n\r\f\v") + 1);
 
-                        if (!screenFound) {
-                            sessions[currentSessionCount].newSession(command.substr(command.find("-s") + 3), getCurrentTimestamp());
-                            system("cls");
-                            sessions[currentSessionCount].screen();
-                            currentSessionCount++;
+
+        if (command == "help") {
+            printHelp();
+        }
+        else if (command == "initialize") {
+            initialize();
+            // No screen clear needed here, output will just follow.
+        }
+        else if (!scheduler_initialized.load() && command != "exit") { // Only 'exit' is recognized before 'initialize'
+            printColor("Please run 'initialize' first before executing other commands.\n", RED);
+        }
+        else if (command.find("screen") == 0) { // Command starts with "screen"
+            if (command.find("-s") != string::npos) { // Create new screen/process
+                string processName = command.substr(command.find("-s") + 3); // Get name after "-s "
+                if (!processName.empty()) {
+                    if (globalScheduler) {
+                        Process* existingProcess = globalScheduler->GetProcessByName(processName); // Checks running processes
+                        if (existingProcess) {
+                            printColor("Process '" + processName + "' is already running.\n", MAGENTA);
                         }
                         else {
-                            printColor("Screen already exists...\n", MAGENTA);
+                            globalScheduler->CreateProcess(false, processName); // Create a single non-batch process with user-provided name
+                            printColor("Screen/Process '" + processName + "' created. Use 'screen -ls' to see it.\n", GREEN);
                         }
                     }
                     else {
-                        printColor("Invalid screen name...\n", RED);
-                    }
-                }
-                else if (command.find("-r") != string::npos) {
-                    if (command.substr(command.find("-r") + 2) != "" && command.substr(command.find("-r") + 3) != "") {
-                        sessionToResume = 0;
-
-                        for (Session session : sessions) {
-                            if (session.GetName() == command.substr(command.find("-r") + 3)) {
-                                screenFound = true;
-                                break;
-                            }
-                            sessionToResume++;
-                        }
-
-                        if (screenFound) {
-                            system("cls");
-                            sessions[sessionToResume].screen();
-                        }
-                        else {
-                            printColor("Screen does not exist...\n", MAGENTA);
-                        }
-                    }
-                    else {
-                        printColor("Invalid screen name...\n", RED);
-                    }
-                }
-                else if (command.find("-ls") != string::npos) {
-                    printColor("Active screens:\n", YELLOW);
-                    bool hasScreens = false;
-                    for (int i = 0; i < currentSessionCount; i++) {
-                        if (sessions[i].GetName() != "") {
-                            cout << "- " << sessions[i].GetName() << endl;
-                            hasScreens = true;
-                        }
-                    }
-                    if (!hasScreens) {
-                        printColor("No active screens.\n", CYAN);
+                        printColor("Scheduler not initialized. Cannot create a process.\n", RED);
                     }
                 }
                 else {
-                    printColor("Screen command not recognized....\n", RED);
+                    printColor("Invalid screen name. Usage: screen -s <name>\n", RED);
                 }
             }
-            else if (command == "scheduler-test") {
-                schedulerTest();
-            }
-            else if (command == "scheduler-stop") {
-                schedulerStop();
-            }
-            else if (command == "report-util") {
-                reportUtil();
-            }
-            else if (command == "clear") {
-                clear();
-            }
-            else if (command == "exit") {
-                printColor("Exiting...\n", RED);
-                if (globalScheduler != nullptr) {
-                    schedulerStop();
+            else if (command.find("-r") != string::npos) { // Resume existing screen/process
+                string processName = command.substr(command.find("-r") + 3); // Get name after "-r "
+                if (!processName.empty()) {
+                    if (globalScheduler) {
+                        // RE-FETCH THE PROCESS POINTER INSIDE THE LOOP FOR SAFETY
+                        // This ensures 'targetProcess' always points to a valid, currently active object.
+                        Process* targetProcess = globalScheduler->GetProcessByName(processName);
+
+                        if (targetProcess) { // Check if process is currently running/active in cores
+                            // We explicitly check IsFinished() again inside the loop for robustness
+                            // although GetProcessByName should ideally not return finished processes.
+                            if (targetProcess->IsFinished()) { // This check becomes more critical if GetProcessByName ever returns a finished process
+                                printColor("Process '" + processName + "' has finished execution.\n", YELLOW);
+                            }
+                            else {
+                                // Initial display of the process screen
+                                system("cls");
+                                printBanner();
+                                printColor("\n--- Process Screen: " + targetProcess->GetName() + " ---\n", YELLOW);
+                                printColor("ID: " + to_string(targetProcess->GetPID()) + "\n", WHITE);
+                                printColor("Logs:\n", WHITE);
+                                for (const string& log : targetProcess->GetPrintLogs()) {
+                                    cout << log << endl;
+                                }
+                                printColor("Current instruction line: " + to_string(targetProcess->GetExecutedInstructions()) + "\n", WHITE);
+                                printColor("Lines of code: " + to_string(targetProcess->GetTotalInstructions()) + "\n", WHITE);
+
+                                printPlaceHolderConsoles(); // Display placeholder console options
+
+                                while (true) { // Loop for process-specific commands
+                                    string process_command;
+                                    printColor("~> process-cli> ", GREEN);
+                                    getline(cin, process_command);
+
+                                    process_command.erase(0, process_command.find_first_not_of(" \t\n\r\f\v"));
+                                    process_command.erase(process_command.find_last_not_of(" \t\n\r\f\v") + 1);
+
+                                    // Re-fetch targetProcess inside the loop to ensure it's still valid
+                                    Process* currentProcessState = globalScheduler->GetProcessByName(processName);
+
+                                    if (!currentProcessState) {
+                                        // Process is no longer running or was deallocated/moved.
+                                        printColor("Process '" + processName + "' is no longer active or has finished.\n", RED);
+                                        break; // Exit process screen loop
+                                    }
+
+                                    if (process_command == "process-smi") { // Print simple information about process
+                                        system("cls"); // Clear and redraw
+                                        printBanner();
+                                        printColor("\n--- Process Screen: " + currentProcessState->GetName() + " ---\n", YELLOW);
+                                        printColor("ID: " + to_string(currentProcessState->GetPID()) + "\n", WHITE);
+                                        printColor("Logs:\n", WHITE);
+                                        for (const string& log : currentProcessState->GetPrintLogs()) {
+                                            cout << log << endl;
+                                        }
+                                        if (currentProcessState->IsFinished()) {
+                                            printColor("Finished!\n", YELLOW);
+                                        }
+                                        else {
+                                            printColor("Current instruction line: " + to_string(currentProcessState->GetExecutedInstructions()) + "\n", WHITE);
+                                            printColor("Lines of code: " + to_string(currentProcessState->GetTotalInstructions()) + "\n", WHITE);
+                                        }
+                                        printPlaceHolderConsoles();
+                                    }
+                                    else if (process_command == "exit") { // Return to main menu
+                                        break; // Exit process screen loop
+                                    }
+                                    else {
+                                        printColor("Unknown command within process screen.\n", RED);
+                                    }
+                                }
+                                // Clear screen and re-print main menu header when exiting process screen
+                                system("cls");
+                                printBanner();
+                                printSubtitle();
+                            }
+                        }
+                        else {
+                            printColor("Process '" + processName + "' not found or has finished execution.\n", MAGENTA);
+                        }
+                    }
+                    else {
+                        printColor("Scheduler not initialized. Cannot access processes.\n", RED);
+                    }
                 }
-                break;
+                else {
+                    printColor("Invalid screen name. Usage: screen -r <name>\n", RED);
+                }
+            }
+            else if (command.find("-ls") != string::npos) { // List all running processes
+                if (globalScheduler) {
+                    globalScheduler->DisplayStatus(cout); // Display status to console
+                }
+                else {
+                    printColor("Scheduler not initialized. No active processes to list.\n", CYAN);
+                }
             }
             else {
-                printColor("Unknown command. Type 'help' for a list of commands.\n", RED);
+                printColor("Screen command not recognized. Usage: screen -s <name>, screen -r <name>, or screen -ls\n", RED);
             }
         }
-        break;
+        else if (command == "scheduler-start") { // Formerly scheduler-test
+            schedulerStart();
+        }
+        else if (command == "scheduler-stop") {
+            schedulerStop();
+        }
+        else if (command == "report-util") {
+            reportUtil();
+        }
+        else if (command == "clear") {
+            clear(); // Explicit clear command
+            printSubtitle(); // Re-print subtitle after clear (banner is handled by clear())
+        }
+        else if (command == "exit") {
+            printColor("Exiting...\n", RED);
+            if (globalScheduler != nullptr) {
+                schedulerStop();
+            }
+            break; // Exit the main loop
+        }
+        else {
+            printColor("Unknown command. Type 'help' for a list of commands.\n", RED);
+        }
     }
 
     return 0;
