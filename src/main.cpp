@@ -1,4 +1,4 @@
-// daisychain.cpp : This file contains the 'main' function. Program execution begins and ends there.
+﻿// daisychain.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
 #include <iostream>
 #include <fstream>
@@ -14,17 +14,51 @@
 #include <chrono>
 #include <vector>
 #include <algorithm>
-
+#include <ctime>
 #include "utils.h"
 
 using namespace std;
+
+//config structure to hold configuration parameters
+struct Config {
+    unsigned numCpu = 4;
+    std::string scheduler = "fcfs";   // "fcfs" or "rr"
+    unsigned quantumCycles = 10;
+    unsigned batchFreq = 1;
+    unsigned minIns = 100;
+    unsigned maxIns = 200;
+    unsigned delayPerExec = 0;
+};
+
+bool loadConfig(const std::string& path, Config& cfg) {
+    std::ifstream in(path);
+    if (!in) { std::cerr << "Cannot open " << path << '\n'; return false; }
+
+    std::string key;
+    while (in >> key) {
+        if (key == "num-cpu")              in >> cfg.numCpu;
+        else if (key == "scheduler")            in >> cfg.scheduler;
+        else if (key == "quantum-cycles")       in >> cfg.quantumCycles;
+        else if (key == "batch-process-freq")   in >> cfg.batchFreq;
+        else if (key == "min-ins")              in >> cfg.minIns;
+        else if (key == "max-ins")              in >> cfg.maxIns;
+        else if (key == "delay-per-exec")       in >> cfg.delayPerExec;
+        else { std::cerr << "Unknown key " << key << '\n'; return false; }
+    }
+    // quick sanity checks
+    if (cfg.numCpu < 1 || cfg.numCpu > 128)                 return false;
+    if (cfg.scheduler != "fcfs" && cfg.scheduler != "rr")   return false;
+    if (cfg.minIns > cfg.maxIns)                            return false;
+    return true;
+}
 
 // Forward declarations
 class Process;
 class FCFSScheduler;
 
 // Global scheduler instance
-FCFSScheduler* globalScheduler = nullptr;
+IScheduler* globalScheduler = nullptr;
+Config gConfig;
 
 /**
 * PROCESS CLASS
@@ -114,13 +148,24 @@ int Process::GetCoreValue() const { return core; }
 void Process::SetCoreValue(int value) { core = value; }
 vector<string> Process::GetPrintLogs() const { return printLogs; }
 
+class IScheduler {
+public:
+    virtual ~IScheduler() = default;
+    virtual void Start() = 0;
+    virtual void Stop() = 0;
+    virtual void CreateProcess() = 0;
+    virtual void DisplayStatus() = 0;
+    virtual bool IsRunning() = 0;
+};
+
+
 /**
 * FCFS SCHEDULER CLASS
 */
-class FCFSScheduler {
+class FCFSScheduler : public IScheduler {
 private:
-    static const int NUM_CORES = 4;
-    Process cores[NUM_CORES];
+    int numCores;            
+    std::vector<Process> cores;
     queue<Process> readyQueue;
     queue<Process> doneQueue;
     mutex schedulerMutex;
@@ -139,11 +184,18 @@ public:
     void DisplayStatus();
     bool IsRunning();
     queue<Process> GetFinishedProcesses();
+
+    explicit FCFSScheduler(const Config& c)
+        : numCores(static_cast<int>(c.numCpu)),
+          running(false), currentPidInc(1) {
+        emptyProcess.NewProcess(0, 0, "");
+        cores.resize(numCores, emptyProcess);
+    }
 };
 
 FCFSScheduler::FCFSScheduler() : running(false), currentPidInc(1) {
     emptyProcess.NewProcess(0, 0, "");
-    for (int i = 0; i < NUM_CORES; i++) {
+    for (int i = 0; i < numCores; i++) {
         cores[i] = emptyProcess;
     }
 }
@@ -175,7 +227,7 @@ void FCFSScheduler::SchedulerLoop() {
         lock_guard<mutex> lock(schedulerMutex);
 
         // Process cores
-        for (int i = 0; i < NUM_CORES; i++) {
+        for (int i = 0; i < numCores; i++) {
             if (cores[i].GetBT() > 0) {
                 cores[i].IncreaseProcessBT();
 
@@ -213,7 +265,7 @@ void FCFSScheduler::SchedulerLoop() {
                 currentPidInc++;
 
                 bool assigned = false;
-                for (int i = 0; i < NUM_CORES; i++) {
+                for (int i = 0; i < numCores; i++) {
                     if (cores[i].GetBT() == 0) {
                         cores[i] = newProcess;
                         cores[i].SetCoreValue(i);
@@ -227,8 +279,8 @@ void FCFSScheduler::SchedulerLoop() {
                 }
             }
         }
-    }
     this_thread::sleep_for(chrono::milliseconds(100));
+    }
 }
 
 void FCFSScheduler::CreateProcess() {
@@ -240,7 +292,7 @@ void FCFSScheduler::CreateProcess() {
         currentPidInc++;
 
         bool assigned = false;
-        for (int i = 0; i < NUM_CORES; i++) {
+        for (int i = 0; i < numCores; i++) {
             if (cores[i].GetBT() == 0) {
                 cores[i] = newProcess;
                 cores[i].SetCoreValue(i);
@@ -269,19 +321,19 @@ void FCFSScheduler::DisplayStatus() {
 
     // Count active cores
     int activeCores = 0;
-    for (int i = 0; i < NUM_CORES; i++) {
+    for (int i = 0; i < numCores; i++) {
         if (cores[i].GetBT() > 0) {
             activeCores++;
         }
     }
 
-    cout << "CPU Utilization: " << ((float)activeCores / NUM_CORES) * 100 << "%" << endl;
-    cout << "Cores used: " << activeCores << " / " << NUM_CORES << endl;
-    cout << "Cores available: " << (NUM_CORES - activeCores) << " / " << NUM_CORES << endl;
+    cout << "CPU Utilization: " << ((float)activeCores / numCores) * 100 << "%" << endl;
+    cout << "Cores used: " << activeCores << " / " << numCores << endl;
+    cout << "Cores available: " << (numCores - activeCores) << " / " << numCores << endl;
 
     cout << "\n--------------------------------" << endl;
     cout << "Running processes:" << endl;
-    for (int i = 0; i < NUM_CORES; i++) {
+    for (int i = 0; i < numCores; i++) {
         if (cores[i].GetBT() > 0) {
             cout << "screen_" << setfill('0') << setw(2) << cores[i].GetPID() << "    "
                 << cores[i].GetAT() << "    Core: " << cores[i].GetCoreValue()
@@ -310,48 +362,56 @@ queue<Process> FCFSScheduler::GetFinishedProcesses() {
 
 
 /**
-* RR SCHEDULER CLASS
-*/
-class RRScheduler {
+ * RR SCHEDULER CLASS
+ */
+class RRScheduler : public IScheduler {
 private:
-    static const int NUM_CORES = 4;
-    static const int QUANTUM = 10;
+    // run-time values (come from Config)
+    int numCores;          // how many CPU cores
+    int quantum;           // time-slice length
 
     struct CoreSlot {
         Process proc;
-        int qRemaining;
+        int  qRemaining;
         bool isEmpty;
-
         CoreSlot() : qRemaining(0), isEmpty(true) {}
     };
 
-    CoreSlot cores[NUM_CORES];
-    queue<Process> readyQueue;
-    queue<Process> doneQueue;
-    mutex schedulerMutex;
-    atomic<bool> running;
-    atomic<int> currentPidInc;
+    std::vector<CoreSlot> cores;     // was CoreSlot cores[numCores]
+    std::queue<Process> readyQueue;
+    std::queue<Process> doneQueue;
+    std::mutex  schedulerMutex;
+    std::atomic<bool> running;
+    std::atomic<int>  currentPidInc;
     Process emptyProcess;
-    thread schedulerThread;
+    std::thread schedulerThread;
 
 public:
-    RRScheduler();
+    explicit RRScheduler(const Config& c);  // ← pass Config in
     ~RRScheduler();
-    void Start();
-    void Stop();
-    void SchedulerLoop();
-    void CreateProcess();
-    void DisplayStatus();
-    bool IsRunning();
-    queue<Process> GetFinishedProcesses();
+
+    /* IScheduler interface */
+    void Start()              override;
+    void Stop()               override;
+    void SchedulerLoop()      override;
+    void CreateProcess()      override;
+    void DisplayStatus()      override;
+    bool IsRunning()          override;
+    std::queue<Process> GetFinishedProcesses() override;
 };
 
-RRScheduler::RRScheduler() : running(false), currentPidInc(1) {
+RRScheduler::RRScheduler(const Config& cfg)
+    : numCores(static_cast<int>(cfg.numCpu)),
+    quantum(static_cast<int>(cfg.quantumCycles)),
+    running(false),
+    currentPidInc(1)
+{
     emptyProcess.NewProcess(0, 0, "");
-    for (int i = 0; i < NUM_CORES; i++) {
-        cores[i].proc = emptyProcess;
-        cores[i].qRemaining = 0;
-        cores[i].isEmpty = true;
+    cores.resize(numCores);          // make one CoreSlot per core
+    for (auto& slot : cores) {       // mark them empty
+        slot.proc = emptyProcess;
+        slot.qRemaining = 0;
+        slot.isEmpty = true;
     }
 }
 
@@ -383,7 +443,7 @@ void RRScheduler::SchedulerLoop() {
             lock_guard<mutex> lock(schedulerMutex);
 
             // Process cores
-            for (int i = 0; i < NUM_CORES; i++) {
+            for (int i = 0; i < numCores; i++) {
                 if (!cores[i].isEmpty && cores[i].proc.GetBT() > 0) {
                     // Execute one time unit of the process
                     cores[i].proc.IncreaseProcessBT();
@@ -405,7 +465,7 @@ void RRScheduler::SchedulerLoop() {
                         if (!readyQueue.empty()) {
                             cores[i].proc = readyQueue.front();
                             cores[i].proc.SetCoreValue(i);
-                            cores[i].qRemaining = QUANTUM;
+                            cores[i].qRemaining = quantum;
                             cores[i].isEmpty = false;
                             readyQueue.pop();
                         }
@@ -424,7 +484,7 @@ void RRScheduler::SchedulerLoop() {
                         if (!readyQueue.empty()) {
                             cores[i].proc = readyQueue.front();
                             cores[i].proc.SetCoreValue(i);
-                            cores[i].qRemaining = QUANTUM;
+                            cores[i].qRemaining = quantum;
                             cores[i].isEmpty = false;
                             readyQueue.pop();
                         }
@@ -446,11 +506,11 @@ void RRScheduler::SchedulerLoop() {
                     currentPidInc++;
 
                     bool assigned = false;
-                    for (int i = 0; i < NUM_CORES; i++) {
+                    for (int i = 0; i < numCores; i++) {
                         if (cores[i].isEmpty) {
                             cores[i].proc = newProcess;
                             cores[i].proc.SetCoreValue(i);
-                            cores[i].qRemaining = QUANTUM;
+                            cores[i].qRemaining = quantum;
                             cores[i].isEmpty = false;
                             assigned = true;
                             break;
@@ -477,11 +537,11 @@ void RRScheduler::CreateProcess() {
         currentPidInc++;
 
         bool assigned = false;
-        for (int i = 0; i < NUM_CORES; i++) {
+        for (int i = 0; i < numCores; i++) {
             if (cores[i].isEmpty) {
                 cores[i].proc = newProcess;
                 cores[i].proc.SetCoreValue(i);
-                cores[i].qRemaining = QUANTUM;
+                cores[i].qRemaining = quantum;
                 cores[i].isEmpty = false;
                 assigned = true;
                 break;
@@ -503,20 +563,20 @@ void RRScheduler::DisplayStatus() {
 
     // Count active cores
     int activeCores = 0;
-    for (int i = 0; i < NUM_CORES; i++) {
+    for (int i = 0; i < numCores; i++) {
         if (!cores[i].isEmpty && cores[i].proc.GetBT() > 0) {
             activeCores++;
         }
     }
 
-    cout << "CPU Utilization: " << ((float)activeCores / NUM_CORES) * 100 << "%" << endl;
-    cout << "Cores used: " << activeCores << " / " << NUM_CORES << endl;
-    cout << "Cores available: " << (NUM_CORES - activeCores) << " / " << NUM_CORES << endl;
-    cout << "Scheduling Algorithm: Round Robin (Quantum = " << QUANTUM << ")" << endl;
+    cout << "CPU Utilization: " << ((float)activeCores / numCores) * 100 << "%" << endl;
+    cout << "Cores used: " << activeCores << " / " << numCores << endl;
+    cout << "Cores available: " << (numCores - activeCores) << " / " << numCores << endl;
+    cout << "Scheduling Algorithm: Round Robin (Quantum = " << quantum << ")" << endl;
 
     cout << "\n--------------------------------" << endl;
     cout << "Running processes:" << endl;
-    for (int i = 0; i < NUM_CORES; i++) {
+    for (int i = 0; i < numCores; i++) {
         if (!cores[i].isEmpty && cores[i].proc.GetBT() > 0) {
             cout << "screen_" << setfill('0') << setw(2) << cores[i].proc.GetPID() << "    "
                 << cores[i].proc.GetAT() << "    Core: " << cores[i].proc.GetCoreValue()
@@ -655,16 +715,30 @@ void Session::screen() {
 * COMMAND FUNCTIONS
 */
 void initialize() {
-    printColor("\"initialize\" command recognized. Initializing scheduler...\n", YELLOW);
-    if (globalScheduler == nullptr) {
-        globalScheduler = new FCFSScheduler();
-        globalScheduler->Start();
-        printColor("Scheduler initialized with 4 cores.\n", GREEN);
+    printColor("\"initialize\" command recognized. Loading config.txt …\n", YELLOW);
+
+    if (!loadConfig("config.txt", gConfig)) {
+        printColor("config.txt is missing or malformed.\n", RED);
+        return;
     }
-    else {
+
+    if (globalScheduler) {        // already running?
         printColor("Scheduler already initialized.\n", YELLOW);
+        return;
     }
+
+    if (gConfig.scheduler == "fcfs") {
+        globalScheduler = new FCFSScheduler(gConfig);
+        printColor("FCFS scheduler created.\n", GREEN);
+    }
+    else {                      // rr
+        globalScheduler = new RRScheduler(gConfig);
+        printColor("RR scheduler created (quantum = "
+            + to_string(gConfig.quantumCycles) + ").\n", GREEN);
+    }
+    globalScheduler->Start();
 }
+
 
 void schedulerTest() {
     printColor("\"scheduler-test\" command recognized. Starting test...\n", YELLOW);
