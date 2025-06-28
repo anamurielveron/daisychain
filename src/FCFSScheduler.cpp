@@ -1,12 +1,3 @@
-#include <iostream>
-#include <string>
-#include <vector>
-#include <mutex>
-#include <queue>
-#include <fstream>
-#include <iomanip>
-#include <sstream>
-
 using namespace std;
 
 #include "FCFSScheduler.h"
@@ -48,7 +39,7 @@ void FCFSScheduler::SchedulerLoop() {
 
             cpuCycles++; // Increment CPU cycle
 
-            // Process cores
+            // Screen cores
             for (int i = 0; i < numCores; i++) {
                 if (cores[i] && !cores[i]->IsFinished() && cores[i]->GetTotalInstructions() > 0) {
                     cores[i]->ExecuteInstruction(i);
@@ -62,7 +53,7 @@ void FCFSScheduler::SchedulerLoop() {
                         doneQueue.push(std::move(cores[i])); // Move unique_ptr to done queue
                         // Assign next process from ready queue if available
                         if (!readyQueue.empty()) {
-                            unique_ptr<Process> nextProcess = std::move(readyQueue.front()); // Move from ready queue
+                            unique_ptr<Screen> nextProcess = std::move(readyQueue.front()); // Move from ready queue
                             readyQueue.pop();
                             nextProcess->SetCoreValue(i);
                             cores[i] = std::move(nextProcess); // Move to core
@@ -82,7 +73,7 @@ void FCFSScheduler::SchedulerLoop() {
                     if (!cores[i]) { // Check if core is idle (nullptr)
                         string processName = "screen_" + string(2 - to_string(currentPidInc).length(), '0') + to_string(currentPidInc);
                         unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
-                        cores[i] = std::make_unique<Process>(currentPidInc, instructions, getCurrentTimestamp(), processName);
+                        cores[i] = std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName);
                         cores[i]->SetCoreValue(i);
                         currentPidInc++;
                         assignedToCore = true;
@@ -93,7 +84,7 @@ void FCFSScheduler::SchedulerLoop() {
                     // If no idle core, add to ready queue
                     string processName = "screen_" + string(2 - to_string(currentPidInc).length(), '0') + to_string(currentPidInc);
                     unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
-                    readyQueue.push(std::make_unique<Process>(currentPidInc, instructions, getCurrentTimestamp(), processName));
+                    readyQueue.push(std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName));
                     currentPidInc++;
                 }
             }
@@ -101,7 +92,7 @@ void FCFSScheduler::SchedulerLoop() {
             // Distribute processes from ready queue to idle cores if any
             for (int i = 0; i < numCores; ++i) {
                 if (!cores[i] && !readyQueue.empty()) { // If core is idle and ready queue has processes
-                    unique_ptr<Process> nextProcess = std::move(readyQueue.front());
+                    unique_ptr<Screen> nextProcess = std::move(readyQueue.front());
                     readyQueue.pop();
                     nextProcess->SetCoreValue(i);
                     cores[i] = std::move(nextProcess);
@@ -124,7 +115,7 @@ void FCFSScheduler::CreateProcess(bool isBatch, const string& userProvidedName) 
     }
 
     unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
-    unique_ptr<Process> newProcess = std::make_unique<Process>(currentPidInc, instructions, getCurrentTimestamp(), processName);
+    unique_ptr<Screen> newProcess = std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName);
     currentPidInc++;
 
     bool assigned = false;
@@ -171,7 +162,7 @@ void FCFSScheduler::DisplayStatus(ostream& os) {
 
     os << "\nFinished processes:" << endl;
     // Create a temporary queue to iterate through done processes without modifying the original
-    queue<unique_ptr<Process>> tempDoneQueue;
+    queue<unique_ptr<Screen>> tempDoneQueue;
     // Copy (move) processes from doneQueue to tempDoneQueue for display
     while (!doneQueue.empty()) {
         tempDoneQueue.push(std::move(doneQueue.front()));
@@ -179,7 +170,7 @@ void FCFSScheduler::DisplayStatus(ostream& os) {
     }
     // Now iterate and print from tempDoneQueue, and then push them back to original doneQueue
     while (!tempDoneQueue.empty()) {
-        const unique_ptr<Process>& p = tempDoneQueue.front(); // Use const reference
+        const unique_ptr<Screen>& p = tempDoneQueue.front(); // Use const reference
         os << p->GetName() << "    " << p->GetArrivalTime()
             << "    Finished    " << p->GetExecutedInstructions() << "/" << p->GetTotalInstructions() << endl;
         doneQueue.push(std::move(tempDoneQueue.front())); // Move back to original queue
@@ -192,7 +183,7 @@ bool FCFSScheduler::IsRunning() {
     return running.load(); // Use load for atomic boolean
 }
 
-Process* FCFSScheduler::GetProcessByName(const string& name) {
+Screen* FCFSScheduler::GetProcessByName(const string& name) {
     lock_guard<mutex> lock(schedulerMutex);
     // Search in running processes (cores)
     for (int i = 0; i < numCores; ++i) {
@@ -203,10 +194,10 @@ Process* FCFSScheduler::GetProcessByName(const string& name) {
     // If not found in running cores, search in ready queue
     // Note: Iterating std::queue directly is not possible.
     // A more efficient way for searching would be to use a std::list or std::vector for the ready queue
-    // if frequent searching is needed, or move to std::map<string, unique_ptr<Process>> for lookup.
+    // if frequent searching is needed, or move to std::map<string, unique_ptr<Screen>> for lookup.
     // For now, iterate by temporary moving to check.
-    queue<unique_ptr<Process>> tempReadyQueue;
-    Process* foundProcess = nullptr;
+    queue<unique_ptr<Screen>> tempReadyQueue;
+    Screen* foundProcess = nullptr;
 
     while (!readyQueue.empty()) {
         if (readyQueue.front()->GetName() == name && !readyQueue.front()->IsFinished()) {
@@ -233,7 +224,7 @@ Process* FCFSScheduler::GetProcessByName(const string& name) {
     // Search in finished processes (doneQueue) - this is for completeness,
     // but the 'screen -r' command generally implies *running* processes.
     // If a process has finished, it might not be relevant to "resume" its screen.
-    // The prompt says: "If the process name is not found/finished execution, the console prints "Process <process name> not found."
+    // The prompt says: "If the process name is not found/finished execution, the console prints "Screen <process name> not found."
     // This implies that 'screen -r' should NOT return finished processes.
     // So, we only return from active cores.
 

@@ -1,4 +1,5 @@
-#include "Process.h"
+#include <process.h>
+#include "Screen.h"
 #include "utils.h"
 
 #include <iostream>
@@ -17,7 +18,7 @@
 class RRScheduler : public BaseScheduler {
 private:
     struct CoreSlot {
-        unique_ptr<Process> proc; // Use unique_ptr
+        unique_ptr<Screen> proc; // Use unique_ptr
         int qRemaining;
         bool isEmpty;
 
@@ -25,8 +26,8 @@ private:
     };
 
     vector<CoreSlot> cores;
-    queue<unique_ptr<Process>> readyQueue; // Use unique_ptr
-    queue<unique_ptr<Process>> doneQueue; // Use unique_ptr
+    queue<unique_ptr<Screen>> readyQueue; // Use unique_ptr
+    queue<unique_ptr<Screen>> doneQueue; // Use unique_ptr
     mutex schedulerMutex;
     atomic<bool> running;
     atomic<int> currentPidInc;
@@ -48,7 +49,7 @@ public:
     void CreateProcess(bool isBatch = false, const string& userProvidedName = "") override;
     void DisplayStatus(ostream& os) override;
     bool IsRunning() override;
-    Process* GetProcessByName(const string& name) override;
+    Screen* GetProcessByName(const string& name) override;
 };
 
 #endif // RRSCHEDULER_H

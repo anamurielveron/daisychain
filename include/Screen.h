@@ -6,10 +6,10 @@
 
 using namespace std;
 
-#ifndef PROCESS_H
-#define PROCESS_H
+#ifndef SCREEN_H
+#define SCREEN_H
 
-class Process 
+class Screen 
 {
 private:
     struct Variables {
@@ -29,16 +29,16 @@ private:
     int nestedLoopNum = 0;
 
 public:
-    Process(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName)
+    Screen(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName)
         : id(newId), totalInstructions(newTotalInstructions), arrivalTimestamp(timeArrived),
         executedInstructions(0), coreAssigned(-1), name(processName), finished(false) {}
 
     // Delete copy constructor and copy assignment operator for std::atomic member
-    Process(const Process&) = delete;
-    Process& operator=(const Process&) = delete;
+    Screen(const Screen&) = delete;
+    Screen& operator=(const Screen&) = delete;
 
     // Allow move constructor and move assignment operator
-    Process(Process&& other) noexcept
+    Screen(Screen&& other) noexcept
         : id(other.id),
         totalInstructions(other.totalInstructions),
         executedInstructions(other.executedInstructions),
@@ -54,7 +54,7 @@ public:
         other.finished.store(true); // Mark original as finished/invalidated
     }
 
-    Process& operator=(Process&& other) noexcept {
+    Screen& operator=(Screen&& other) noexcept {
         if (this != &other) {
             id = other.id;
             totalInstructions = other.totalInstructions;
@@ -101,4 +101,4 @@ public:
     void SetFinished(bool status);
 };
 
-#endif // PROCESS_H
+#endif // SCREEN_H

@@ -6,11 +6,11 @@
 #include <sstream>
 #include <list>
 #include <windows.h>
-#include "Process.h"
+#include "Screen.h"
 
 using namespace std;
 
-void Process::screen() {
+void Screen::screen() {
 	//Display session name and time created
 	printColor("Welcome to " + name + "\n\n", YELLOW);
 	printColor("Time created: " + arrivalTimestamp + "\n", YELLOW);
@@ -21,7 +21,7 @@ void Process::screen() {
 		printColor("~> ", CYAN);
 		std::getline(std::cin, command);
 		if (command == "process-smi") {
-			printColor("Process name: " + name + "\n", CYAN);
+			printColor("Screen name: " + name + "\n", CYAN);
 			printColor("ID: " + to_string(id) + "\n", CYAN);
 			printColor("Current instruction line: " + to_string(executedInstructions) + "/" + to_string(totalInstructions) + "\n", CYAN);
 			PrintProcessRunning();
@@ -36,13 +36,13 @@ void Process::screen() {
 	printSubtitle();
 }
 
-void Process::run() {
+void Screen::run() {
 	while (executedInstructions < totalInstructions) {
 		RunInstructions(rand() % 6);
 	}
 }
 
-void Process::RunInstructions(int instructionToRun) {
+void Screen::RunInstructions(int instructionToRun) {
 	if (instructionToRun == 0) {
 		PRINT(printMsg);
 	}
@@ -82,14 +82,14 @@ void Process::RunInstructions(int instructionToRun) {
 	}
 }
 
-void Process::PrintProcessRunning() {
+void Screen::PrintProcessRunning() {
 	printColor("Log: \n", CYAN);
 	for (string print : printLogs) {
 		printColor(print + "\n", INVERTED);
 	}
 }
 
-bool Process::CheckVariable(string input) {
+bool Screen::CheckVariable(string input) {
 	for (char c : input) {
 		if (!isdigit(c)) {
 			return false;
@@ -99,7 +99,7 @@ bool Process::CheckVariable(string input) {
 	return true;
 }
 
-int Process::FindVariable(string varInput) {
+int Screen::FindVariable(string varInput) {
 	for (int i = 0; i < 100;i++) {
 		if (vars[i].varName == varInput) {
 			return i;
@@ -112,7 +112,7 @@ int Process::FindVariable(string varInput) {
 	return -1;
 }
 
-int Process::ValueAssignment(string variable) {
+int Screen::ValueAssignment(string variable) {
 	int foundIndex;
 	int constantVar;
 
@@ -134,12 +134,12 @@ int Process::ValueAssignment(string variable) {
 	return constantVar;
 }
 
-void Process::PRINT(string msg) {
+void Screen::PRINT(string msg) {
 	printLogs.push_back(getCurrentTimestamp() + " Core: " + to_string(coreAssigned) + " " + msg);
 	executedInstructions++;
 }
 
-void Process::DECLARE(string name, int val) {
+void Screen::DECLARE(string name, int val) {
 	bool exists = false;
 	int foundIndex = FindVariable(name);
 
@@ -160,7 +160,7 @@ void Process::DECLARE(string name, int val) {
 	executedInstructions++;
 }
 
-void Process::ADD(string sum, string addend1, string addend2) {
+void Screen::ADD(string sum, string addend1, string addend2) {
 	int varSumIndex = FindVariable(sum);
 	int varAddEnd1 = ValueAssignment(addend1);
 	int varAddEnd2 = ValueAssignment(addend2);
@@ -177,7 +177,7 @@ void Process::ADD(string sum, string addend1, string addend2) {
 	executedInstructions++;
 }
 
-void Process::SUB(string diff, string subend1, string subend2) {
+void Screen::SUB(string diff, string subend1, string subend2) {
 	int varDiffIndex = FindVariable(diff);
 	int varSubEnd1 = ValueAssignment(subend1);
 	int varSubEnd2 = ValueAssignment(subend2);
@@ -194,7 +194,7 @@ void Process::SUB(string diff, string subend1, string subend2) {
 	executedInstructions++;
 }
 
-void Process::FOR(int iterations) {
+void Screen::FOR(int iterations) {
 	nestedLoopNum++;
 	
 	list<int> instructionToRun;
@@ -220,13 +220,13 @@ void Process::FOR(int iterations) {
 	printLogs.push_back(getCurrentTimestamp() + " Core: " + to_string(coreAssigned) + " Looping finished!");
 }
 
-void Process::SLEEP(int cycles) {
+void Screen::SLEEP(int cycles) {
 	Sleep(cycles);
 	executedInstructions++;
 }
 
 
-void Process::ExecuteInstruction(int coreNum) {
+void Screen::ExecuteInstruction(int coreNum) {
     if (executedInstructions < totalInstructions) {
         executedInstructions++;
 		RunInstructions(rand()%6);
@@ -240,7 +240,7 @@ void Process::ExecuteInstruction(int coreNum) {
 }
 
 /*
-void Process::AddPrintLog(const string& message, int coreNum) {
+void Screen::AddPrintLog(const string& message, int coreNum) {
     SYSTEMTIME st;
     GetLocalTime(&st);
 
@@ -260,13 +260,13 @@ void Process::AddPrintLog(const string& message, int coreNum) {
 
 
 
-int Process::GetPID() const { return id; }
-string Process::GetName() const { return name; }
-string Process::GetArrivalTime() const { return arrivalTimestamp; }
-unsigned int Process::GetExecutedInstructions() const { return executedInstructions; }
-unsigned int Process::GetTotalInstructions() const { return totalInstructions; }
-int Process::GetCoreValue() const { return coreAssigned; }
-void Process::SetCoreValue(int value) { coreAssigned = value; }
-vector<string> Process::GetPrintLogs() const { return printLogs; }
-bool Process::IsFinished() const { return finished.load(); } // Use load for atomic boolean
-void Process::SetFinished(bool status) { finished.store(status); } // Use store for atomic boolean
+int Screen::GetPID() const { return id; }
+string Screen::GetName() const { return name; }
+string Screen::GetArrivalTime() const { return arrivalTimestamp; }
+unsigned int Screen::GetExecutedInstructions() const { return executedInstructions; }
+unsigned int Screen::GetTotalInstructions() const { return totalInstructions; }
+int Screen::GetCoreValue() const { return coreAssigned; }
+void Screen::SetCoreValue(int value) { coreAssigned = value; }
+vector<string> Screen::GetPrintLogs() const { return printLogs; }
+bool Screen::IsFinished() const { return finished.load(); } // Use load for atomic boolean
+void Screen::SetFinished(bool status) { finished.store(status); } // Use store for atomic boolean

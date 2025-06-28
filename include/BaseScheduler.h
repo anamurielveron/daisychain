@@ -1,9 +1,10 @@
+#include <process.h>
 #include <iostream>
 #include <string>
 
 #pragma once
 
-#include "Process.h"
+#include "Screen.h"
 
 #ifndef BASESCHEDULER_H
 #define BASESCHEDULER_H
@@ -20,7 +21,7 @@ public:
     // Modified GetProcessByName to search through finished processes as well
     // and to return nullptr if the process is finished, so the main thread
     // doesn't try to access a deallocated object.
-    virtual Process* GetProcessByName(const string& name) = 0;
+    virtual Screen* GetProcessByName(const string& name) = 0;
 };
 
 #endif // BASESCHEDULER

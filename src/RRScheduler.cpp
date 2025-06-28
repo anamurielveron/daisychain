@@ -1,5 +1,6 @@
 #include "RRScheduler.h"
 
+
 RRScheduler::RRScheduler(int num_cores, int quantum_cycles, unsigned int min_ins, unsigned int max_ins, int batch_freq, int delay_exec)
     : running(false), currentPidInc(1), cpuCycles(0), numCores(num_cores), quantum(quantum_cycles),
     minInstructions(min_ins), maxInstructions(max_ins), batchProcessFrequency(batch_freq),
@@ -19,7 +20,7 @@ RRScheduler::~RRScheduler() {
 void RRScheduler::Start() {
     if (!running) {
         running = true;
-        schedulerThread = thread(&RRScheduler::SchedulerLoop, this);
+        std::thread schedulerThread(&RRScheduler::SchedulerLoop, this);
     }
 }
 
@@ -41,7 +42,7 @@ void RRScheduler::SchedulerLoop() {
 
             cpuCycles++; // Increment CPU cycle
 
-            // Process cores
+            // Screen cores
             for (int i = 0; i < numCores; i++) {
                 if (!cores[i].isEmpty && cores[i].proc && !cores[i].proc->IsFinished() && cores[i].proc->GetTotalInstructions() > 0) {
                     cores[i].proc->ExecuteInstruction(i);
@@ -56,7 +57,7 @@ void RRScheduler::SchedulerLoop() {
                         doneQueue.push(std::move(cores[i].proc)); // Move unique_ptr
                         // Assign next process from ready queue if available
                         if (!readyQueue.empty()) {
-                            unique_ptr<Process> nextProcess = std::move(readyQueue.front());
+                            unique_ptr<Screen> nextProcess = std::move(readyQueue.front());
                             readyQueue.pop();
                             nextProcess->SetCoreValue(i);
                             cores[i].proc = std::move(nextProcess);
@@ -74,7 +75,7 @@ void RRScheduler::SchedulerLoop() {
                         readyQueue.push(std::move(cores[i].proc)); // Move process back to ready queue
                         // Assign next process from ready queue if available
                         if (!readyQueue.empty()) {
-                            unique_ptr<Process> nextProcess = std::move(readyQueue.front());
+                            unique_ptr<Screen> nextProcess = std::move(readyQueue.front());
                             readyQueue.pop();
                             nextProcess->SetCoreValue(i);
                             cores[i].proc = std::move(nextProcess);
@@ -97,7 +98,7 @@ void RRScheduler::SchedulerLoop() {
                     if (cores[i].isEmpty) {
                         string processName = "screen_" + string(2 - to_string(currentPidInc).length(), '0') + to_string(currentPidInc);
                         unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
-                        unique_ptr<Process> newProcess = std::make_unique<Process>(currentPidInc, instructions, getCurrentTimestamp(), processName);
+                        unique_ptr<Screen> newProcess = std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName);
                         cores[i].proc = std::move(newProcess);
                         cores[i].proc->SetCoreValue(i);
                         cores[i].qRemaining = quantum;
@@ -110,7 +111,7 @@ void RRScheduler::SchedulerLoop() {
                 if (!assignedToCore) {
                     string processName = "screen_" + string(2 - to_string(currentPidInc).length(), '0') + to_string(currentPidInc);
                     unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
-                    readyQueue.push(std::make_unique<Process>(currentPidInc, instructions, getCurrentTimestamp(), processName));
+                    readyQueue.push(std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName));
                     currentPidInc++;
                 }
             }
@@ -118,7 +119,7 @@ void RRScheduler::SchedulerLoop() {
             // Distribute processes from ready queue to idle cores if any
             for (int i = 0; i < numCores; ++i) {
                 if (cores[i].isEmpty && !readyQueue.empty()) {
-                    unique_ptr<Process> nextProcess = std::move(readyQueue.front());
+                    unique_ptr<Screen> nextProcess = std::move(readyQueue.front());
                     readyQueue.pop();
                     nextProcess->SetCoreValue(i);
                     cores[i].proc = std::move(nextProcess);
@@ -143,7 +144,7 @@ void RRScheduler::CreateProcess(bool isBatch, const string& userProvidedName) {
     }
 
     unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
-    unique_ptr<Process> newProcess = std::make_unique<Process>(currentPidInc, instructions, getCurrentTimestamp(), processName);
+    unique_ptr<Screen> newProcess = std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName);
     currentPidInc++;
 
     bool assigned = false;
@@ -192,13 +193,13 @@ void RRScheduler::DisplayStatus(ostream& os) {
     os << "\nReady Queue Size: " << readyQueue.size() << endl;
 
     os << "\nFinished processes:" << endl;
-    queue<unique_ptr<Process>> tempDoneQueue;
+    queue<unique_ptr<Screen>> tempDoneQueue;
     while (!doneQueue.empty()) {
         tempDoneQueue.push(std::move(doneQueue.front()));
         doneQueue.pop();
     }
     while (!tempDoneQueue.empty()) {
-        const unique_ptr<Process>& p = tempDoneQueue.front();
+        const unique_ptr<Screen>& p = tempDoneQueue.front();
         os << p->GetName() << "    " << p->GetArrivalTime()
             << "    Finished    " << p->GetExecutedInstructions() << "/" << p->GetTotalInstructions() << endl;
         doneQueue.push(std::move(tempDoneQueue.front())); // Move back
@@ -211,7 +212,7 @@ bool RRScheduler::IsRunning() {
     return running.load();
 }
 
-Process* RRScheduler::GetProcessByName(const string& name) {
+Screen* RRScheduler::GetProcessByName(const string& name) {
     lock_guard<mutex> lock(schedulerMutex);
     for (int i = 0; i < numCores; ++i) {
         if (!cores[i].isEmpty && cores[i].proc && cores[i].proc->GetName() == name && !cores[i].proc->IsFinished()) {

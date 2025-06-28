@@ -18,7 +18,7 @@
 #include <memory> // Required for unique_ptr
 
 #include "utils.h"
-#include "Process.h"
+#include "Screen.h"
 #include "BaseScheduler.h"
 #include "FCFSScheduler.h"
 #include "RRScheduler.h"
@@ -44,7 +44,7 @@ Config globalConfig; // Global config instance
 //Config globalScheduler {};
 
 // Forward declarations
-class Process;
+class Screen;
 class BaseScheduler; // Base class for schedulers
 class FCFSScheduler;
 class RRScheduler;
@@ -218,13 +218,13 @@ int main() {
                 string processName = command.substr(command.find("-s") + 3); // Get name after "-s "
                 if (!processName.empty()) {
                     if (globalScheduler) {
-                        Process* existingProcess = globalScheduler->GetProcessByName(processName); // Checks running processes
+                        Screen* existingProcess = globalScheduler->GetProcessByName(processName); // Checks running processes
                         if (existingProcess) {
-                            printColor("Process '" + processName + "' is already running.\n", MAGENTA);
+                            printColor("Screen '" + processName + "' is already running.\n", MAGENTA);
                         }
                         else {
                             globalScheduler->CreateProcess(false, processName); // Create a single non-batch process with user-provided name
-                            //printColor("Screen/Process '" + processName + "' created. Use 'screen -ls' to see it.\n", GREEN);
+                            //printColor("Screen/Screen '" + processName + "' created. Use 'screen -ls' to see it.\n", GREEN);
                             globalScheduler->GetProcessByName(processName)->screen();
                         }
                     }
@@ -242,21 +242,21 @@ int main() {
                     if (globalScheduler) {
                         // RE-FETCH THE PROCESS POINTER INSIDE THE LOOP FOR SAFETY
                         // This ensures 'targetProcess' always points to a valid, currently active object.
-                        Process* targetProcess = globalScheduler->GetProcessByName(processName);
+                        Screen* targetProcess = globalScheduler->GetProcessByName(processName);
 
                         if (targetProcess) { // Check if process is currently running/active in cores
                             // We explicitly check IsFinished() again inside the loop for robustness
                             // although GetProcessByName should ideally not return finished processes.
                             if (targetProcess -> IsFinished()) { // This check becomes more critical if GetProcessByName ever returns a finished process
-                                printColor("Process '" + processName + "' has finished execution.\n", YELLOW);
+                                printColor("Screen '" + processName + "' has finished execution.\n", YELLOW);
                             }
                             else {
-                                targetProcess ->screen();
+                                targetProcess -> screen();
                                 // Initial display of the process screen
                                 /*
                                 system("cls");
                                 printBanner();
-                                printColor("\n--- Process Screen: " + targetProcess->GetName() + " ---\n", YELLOW);
+                                printColor("\n--- Screen Screen: " + targetProcess->GetName() + " ---\n", YELLOW);
                                 printColor("ID: " + to_string(targetProcess->GetPID()) + "\n", WHITE);
                                 printColor("Logs:\n", WHITE);
                                 for (const string& log : targetProcess->GetPrintLogs()) {
@@ -276,18 +276,18 @@ int main() {
                                     process_command.erase(process_command.find_last_not_of(" \t\n\r\f\v") + 1);
 
                                     // Re-fetch targetProcess inside the loop to ensure it's still valid
-                                    Process* currentProcessState = globalScheduler->GetProcessByName(processName);
+                                    Screen* currentProcessState = globalScheduler->GetProcessByName(processName);
 
                                     if (!currentProcessState) {
-                                        // Process is no longer running or was deallocated/moved.
-                                        printColor("Process '" + processName + "' is no longer active or has finished.\n", RED);
+                                        // Screen is no longer running or was deallocated/moved.
+                                        printColor("Screen '" + processName + "' is no longer active or has finished.\n", RED);
                                         break; // Exit process screen loop
                                     }
 
                                     if (process_command == "process-smi") { // Print simple information about process
                                         system("cls"); // Clear and redraw
                                         printBanner();
-                                        printColor("\n--- Process Screen: " + currentProcessState->GetName() + " ---\n", YELLOW);
+                                        printColor("\n--- Screen Screen: " + currentProcessState->GetName() + " ---\n", YELLOW);
                                         printColor("ID: " + to_string(currentProcessState->GetPID()) + "\n", WHITE);
                                         printColor("Logs:\n", WHITE);
                                         for (const string& log : currentProcessState->GetPrintLogs()) {
@@ -317,7 +317,7 @@ int main() {
                             }
                         }
                         else {
-                            printColor("Process '" + processName + "' not found or has finished execution.\n", MAGENTA);
+                            printColor("Screen '" + processName + "' not found or has finished execution.\n", MAGENTA);
                         }
                     }
                     else {
