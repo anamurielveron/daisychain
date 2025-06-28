@@ -6,7 +6,8 @@
 #include <string>
 #include <iomanip>
 #include <sstream>
-
+#include <chrono>
+#include <windows.h>
 
 /**
 * COLOR UTILS
@@ -122,6 +123,24 @@ void printPlaceHolderConsoles() {
 		if ((i + 1) % 6 == 0) std::cout << std::endl;
 	}
 	std::cout << std::endl;
+}
+
+std::string getCurrentTimestamp() {
+	SYSTEMTIME st;
+	GetLocalTime(&st);
+	char buffer[100]; // to hold the time
+
+	//formats the time to 12 hour
+	std::string am_pm = (st.wHour >= 12) ? "PM" : "AM";
+	int hour = st.wHour % 12;
+	if (hour == 0) hour = 12;
+
+	sprintf_s(buffer, "%02d/%02d/%04d, %02d:%02d:%02d %s",
+		st.wMonth, st.wDay, st.wYear,
+		hour, st.wMinute, st.wSecond,
+		am_pm.c_str());
+
+	return std::string(buffer);
 }
 
 /**

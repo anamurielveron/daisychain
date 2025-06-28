@@ -51,4 +51,6 @@ void printPlaceHolderConsoles();
  */
 void clear();
 
+std::string getCurrentTimestamp();
+
 #endif // UTILS_H

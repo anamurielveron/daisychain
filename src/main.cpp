@@ -4,40 +4,267 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-
+#include <queue>
 #include <map> // for a hashmap
 #include <iomanip>
 #include <sstream>
 #include <windows.h>
 
 #include "utils.h"
+#include "Process.h"
+#include "FCFSScheduler.h"
+#include "Session.h"
 
 using namespace std;
 
-/**
-* TEMPLATE COMMAND FUNCTIONS
-*/
+// Forward declarations
+class Process;
+class FCFSScheduler;
 
-// Session class that stores and displays the screen
-class Session {
-	string name;
-	string currentLine;
-	int totalLines = 0;
-	string timestamp;
+// Global scheduler instance
+FCFSScheduler* globalScheduler = nullptr;
+
+
+/**
+* RR SCHEDULER CLASS
+*/
+class RRScheduler {
+private:
+    static const int NUM_CORES = 4;
+    static const int QUANTUM = 10;
+
+    struct CoreSlot {
+        Process proc;
+        int qRemaining;
+        bool isEmpty;
+
+        CoreSlot() : qRemaining(0), isEmpty(true) {}
+    };
+
+    CoreSlot cores[NUM_CORES];
+    queue<Process> readyQueue;
+    queue<Process> doneQueue;
+    mutex schedulerMutex;
+    atomic<bool> running;
+    atomic<int> currentPidInc;
+    Process emptyProcess;
+    thread schedulerThread;
 
 public:
-	void newSession(string scrName, string timeCreated) {
-		name = scrName;
-		currentLine = "";
-		timestamp = timeCreated;
-	}
-
-	void screen();
-
-	string GetName() {
-		return name;
-	}
+    RRScheduler();
+    ~RRScheduler();
+    void Start();
+    void Stop();
+    void SchedulerLoop();
+    void CreateProcess();
+    void DisplayStatus();
+    bool IsRunning();
+    queue<Process> GetFinishedProcesses();
 };
+
+RRScheduler::RRScheduler() : running(false), currentPidInc(1) {
+    emptyProcess.NewProcess(0, 0, "");
+    for (int i = 0; i < NUM_CORES; i++) {
+        cores[i].proc = emptyProcess;
+        cores[i].qRemaining = 0;
+        cores[i].isEmpty = true;
+    }
+}
+
+RRScheduler::~RRScheduler() {
+    Stop();
+}
+
+void RRScheduler::Start() {
+    if (!running) {
+        running = true;
+        schedulerThread = thread(&RRScheduler::SchedulerLoop, this);
+    }
+}
+
+void RRScheduler::Stop() {
+    if (running) {
+        running = false;
+        if (schedulerThread.joinable()) {
+            schedulerThread.join();
+        }
+    }
+}
+
+void RRScheduler::SchedulerLoop() {
+    srand(time(0));
+
+    while (running) {
+        {
+            lock_guard<mutex> lock(schedulerMutex);
+
+            // Process cores
+            for (int i = 0; i < NUM_CORES; i++) {
+                if (!cores[i].isEmpty && cores[i].proc.GetBT() > 0) {
+                    // Execute one time unit of the process
+                    cores[i].proc.IncreaseProcessBT();
+                    cores[i].qRemaining--;
+
+                    // Add print command simulation
+                    string message = "\"Hello world from screen_" +
+                        string(2 - to_string(cores[i].proc.GetPID()).length(), '0') +
+                        to_string(cores[i].proc.GetPID()) + "!\"";
+                    cores[i].proc.AddPrintLog(message, i);
+
+                    // Check if process is done
+                    if (cores[i].proc.GetCurrentProgress() == cores[i].proc.GetBT()) {
+                        cores[i].proc.processDone = true;
+                        cores[i].proc.CreateNewFile();
+                        doneQueue.push(cores[i].proc);
+
+                        // Assign next process from ready queue if available
+                        if (!readyQueue.empty()) {
+                            cores[i].proc = readyQueue.front();
+                            cores[i].proc.SetCoreValue(i);
+                            cores[i].qRemaining = QUANTUM;
+                            cores[i].isEmpty = false;
+                            readyQueue.pop();
+                        }
+                        else {
+                            cores[i].proc = emptyProcess;
+                            cores[i].qRemaining = 0;
+                            cores[i].isEmpty = true;
+                        }
+                    }
+                    // Check if quantum is exhausted but process is not done
+                    else if (cores[i].qRemaining <= 0) {
+                        // Move process back to ready queue (preemption)
+                        readyQueue.push(cores[i].proc);
+
+                        // Assign next process from ready queue if available
+                        if (!readyQueue.empty()) {
+                            cores[i].proc = readyQueue.front();
+                            cores[i].proc.SetCoreValue(i);
+                            cores[i].qRemaining = QUANTUM;
+                            cores[i].isEmpty = false;
+                            readyQueue.pop();
+                        }
+                        else {
+                            cores[i].proc = emptyProcess;
+                            cores[i].qRemaining = 0;
+                            cores[i].isEmpty = true;
+                        }
+                    }
+                }
+            }
+
+            // Create new process randomly (only if we haven't reached the limit)
+            if (currentPidInc <= 10) {
+                int createProcess = rand() % 100;
+                if (createProcess < 20) { // 20% chance to create process
+                    Process newProcess;
+                    newProcess.NewProcess(currentPidInc, 100, getCurrentTimestamp()); // 100 print commands
+                    currentPidInc++;
+
+                    bool assigned = false;
+                    for (int i = 0; i < NUM_CORES; i++) {
+                        if (cores[i].isEmpty) {
+                            cores[i].proc = newProcess;
+                            cores[i].proc.SetCoreValue(i);
+                            cores[i].qRemaining = QUANTUM;
+                            cores[i].isEmpty = false;
+                            assigned = true;
+                            break;
+                        }
+                    }
+
+                    if (!assigned) {
+                        readyQueue.push(newProcess);
+                    }
+                }
+            }
+        }
+
+        this_thread::sleep_for(chrono::milliseconds(100));
+    }
+}
+
+void RRScheduler::CreateProcess() {
+    lock_guard<mutex> lock(schedulerMutex);
+
+    if (currentPidInc <= 10) {
+        Process newProcess;
+        newProcess.NewProcess(currentPidInc, 100, getCurrentTimestamp());
+        currentPidInc++;
+
+        bool assigned = false;
+        for (int i = 0; i < NUM_CORES; i++) {
+            if (cores[i].isEmpty) {
+                cores[i].proc = newProcess;
+                cores[i].proc.SetCoreValue(i);
+                cores[i].qRemaining = QUANTUM;
+                cores[i].isEmpty = false;
+                assigned = true;
+                break;
+            }
+        }
+
+        if (!assigned) {
+            readyQueue.push(newProcess);
+        }
+    }
+}
+
+void RRScheduler::DisplayStatus() {
+    lock_guard<mutex> lock(schedulerMutex);
+
+    system("cls");
+    printBanner();
+    printSubtitle();
+
+    // Count active cores
+    int activeCores = 0;
+    for (int i = 0; i < NUM_CORES; i++) {
+        if (!cores[i].isEmpty && cores[i].proc.GetBT() > 0) {
+            activeCores++;
+        }
+    }
+
+    cout << "CPU Utilization: " << ((float)activeCores / NUM_CORES) * 100 << "%" << endl;
+    cout << "Cores used: " << activeCores << " / " << NUM_CORES << endl;
+    cout << "Cores available: " << (NUM_CORES - activeCores) << " / " << NUM_CORES << endl;
+    cout << "Scheduling Algorithm: Round Robin (Quantum = " << QUANTUM << ")" << endl;
+
+    cout << "\n--------------------------------" << endl;
+    cout << "Running processes:" << endl;
+    for (int i = 0; i < NUM_CORES; i++) {
+        if (!cores[i].isEmpty && cores[i].proc.GetBT() > 0) {
+            cout << "screen_" << setfill('0') << setw(2) << cores[i].proc.GetPID() << "    "
+                << cores[i].proc.GetAT() << "    Core: " << cores[i].proc.GetCoreValue()
+                << "    " << cores[i].proc.GetCurrentProgress() << "/" << cores[i].proc.GetBT()
+                << "    Quantum remaining: " << cores[i].qRemaining << endl;
+        }
+    }
+
+    cout << "\nReady Queue Size: " << readyQueue.size() << endl;
+
+    cout << "\nFinished processes:" << endl;
+    queue<Process> tempQueue = doneQueue;
+    while (!tempQueue.empty()) {
+        Process p = tempQueue.front();
+        cout << "screen_" << setfill('0') << setw(2) << p.GetPID() << "    " << p.GetAT()
+            << "    Finished    " << p.GetCurrentProgress() << "/" << p.GetBT() << endl;
+        tempQueue.pop();
+    }
+    cout << "--------------------------------" << endl;
+}
+
+bool RRScheduler::IsRunning() {
+    return running;
+}
+
+queue<Process> RRScheduler::GetFinishedProcesses() {
+    return doneQueue;
+}
+
+/**
+* SESSION CLASS
+*/
 
 //array of sessions for individual screen
 Session sessions[10];
@@ -45,86 +272,6 @@ Session sessions[10];
 void initialize() {
 	printColor("\"initialize\" command recognized. Doing something...\n", YELLOW);
 	// TODO: Implement the initialize command
-}
-
-void Session::screen() {
-	//Display session name and time created
-	printColor(name + "\n\n", YELLOW);
-	printColor(timestamp + "\n", YELLOW);
-	cout << "Total commands happened on screen: " << totalLines << "\n\n";
-	cout << "Previous command done: " << currentLine << "\n\n";
-
-	printPlaceHolderConsoles();
-	while (true) {
-		std::string command;
-		printColor("~> ", CYAN);
-		std::getline(std::cin, command);
-		if (command == "G") {
-			printColor("Getting help \n", YELLOW);
-			totalLines++;
-			currentLine = command;
-		}
-		else if (command == "O") {
-			printColor("Writing Out \n", YELLOW);
-			totalLines++;
-			currentLine = command;
-		}
-		else if (command == "R") {
-			printColor("Reading File \n", YELLOW);
-			totalLines++;
-			currentLine = command;
-		}
-		else if (command == "Y") {
-			printColor("I guess we use a go-to to traverse pages? \n", YELLOW);
-			totalLines++;
-			currentLine = command;
-		}
-		else if (command == "K") {
-			printColor("Cutting Text \n", YELLOW);
-			totalLines++;
-			currentLine = command;
-		}
-		else if (command == "C") {
-			printColor("Current Position \n", YELLOW);
-			totalLines++;
-			currentLine = command;
-		}
-		else if (command == "J") {
-			printColor("Justifying \n", YELLOW);
-			totalLines++;
-			currentLine = command;
-		}
-		else if (command == "W") {
-			printColor("Some Strcmp fucntion to search? \n", YELLOW);
-			totalLines++;
-			currentLine = command;
-		}
-		else if (command == "V") {
-			printColor("Same as prev page, maybe a go-to to traverse? \n", YELLOW);
-			totalLines++;
-			currentLine = command;
-		}
-		else if (command == "U") {
-			printColor("Tf does this even mean? Undo? \n", YELLOW);
-			totalLines++;
-			currentLine = command;
-		}
-		else if (command == "T") {
-			printColor("Spelling \n", YELLOW);
-			totalLines++;
-			currentLine = command;
-		}
-		else if (command == "X") {
-			break;
-		}
-		else {
-			printColor("Unknown command\n", RED);
-		}
-	}
-	system("cls");
-
-	printBanner();
-	printSubtitle();
 }
 
 void schedulerTest() {
@@ -140,25 +287,6 @@ void schedulerStop() {
 void reportUtil() {
 	printColor("\"report-util\" command recognized. Doing something...\n", YELLOW);
 	// TODO: Implement the report-util command
-}
-
-
-string getCurrentTimestamp() {
-	SYSTEMTIME st;
-	GetLocalTime(&st);
-	char buffer[100]; // to hold the time
-
-	//formats the time to 12 hour
-	string am_pm = (st.wHour >= 12) ? "PM" : "AM";
-	int hour = st.wHour % 12;
-	if (hour == 0) hour = 12;
-
-	sprintf_s(buffer, "%02d/%02d/%04d, %02d:%02d:%02d %s",
-		st.wMonth, st.wDay, st.wYear,
-		hour, st.wMinute, st.wSecond,
-		am_pm.c_str());
-
-	return string(buffer);
 }
 
 

@@ -19,6 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="FCFSScheduler.cpp" />
+    <ClCompile Include="Process.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\utils.cpp" />
   </ItemGroup>
@@ -26,7 +28,9 @@
     <Text Include="data\banner.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="FCFSScheduler.h" />
     <ClInclude Include="include\utils.h" />
+    <ClInclude Include="Process.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
