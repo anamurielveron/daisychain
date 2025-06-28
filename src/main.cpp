@@ -27,10 +27,6 @@
 // Bring common C++ standard library elements into scope
 using namespace std;
 
-// Global scheduler instance
-Config globalScheduler {};
-
-
 // Global configuration parameters
 struct Config {
     int num_cpu = 4;
@@ -44,16 +40,18 @@ struct Config {
 
 Config globalConfig; // Global config instance
 
+// Global scheduler instance
+//Config globalScheduler {};
+
 // Forward declarations
-class Process {};
-class BaseScheduler {}; // Base class for schedulers
-class FCFSScheduler {};
-class RRScheduler {};
+class Process;
+class BaseScheduler; // Base class for schedulers
+class FCFSScheduler;
+class RRScheduler;
 
 // Global scheduler instance (using a raw pointer to BaseScheduler for polymorphism)
 BaseScheduler* globalScheduler = nullptr;
 atomic<bool> scheduler_initialized(false);
-
 
 // Function to read config.txt
 bool readConfig(Config& config) {
@@ -227,7 +225,7 @@ int main() {
                         else {
                             globalScheduler->CreateProcess(false, processName); // Create a single non-batch process with user-provided name
                             //printColor("Screen/Process '" + processName + "' created. Use 'screen -ls' to see it.\n", GREEN);
-                            globalScheduler->GetProcessByName(processName).screen();
+                            globalScheduler->GetProcessByName(processName)->screen();
                         }
                     }
                     else {
@@ -249,11 +247,11 @@ int main() {
                         if (targetProcess) { // Check if process is currently running/active in cores
                             // We explicitly check IsFinished() again inside the loop for robustness
                             // although GetProcessByName should ideally not return finished processes.
-                            if (globalScheduler->GetProcessByName(processName).IsFinished()) { // This check becomes more critical if GetProcessByName ever returns a finished process
+                            if (targetProcess -> IsFinished()) { // This check becomes more critical if GetProcessByName ever returns a finished process
                                 printColor("Process '" + processName + "' has finished execution.\n", YELLOW);
                             }
                             else {
-                                globalScheduler->GetProcessByName(processName).screen();
+                                targetProcess ->screen();
                                 // Initial display of the process screen
                                 /*
                                 system("cls");
