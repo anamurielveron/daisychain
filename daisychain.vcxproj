@@ -31,6 +31,7 @@
     <Text Include="data\banner.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\BaseScheduler.h" />
     <ClInclude Include="include\FCFSScheduler.h" />
     <ClInclude Include="include\Process.h" />
     <ClInclude Include="include\RRScheduler.h" />

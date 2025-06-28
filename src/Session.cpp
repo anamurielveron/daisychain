@@ -17,10 +17,8 @@ string Session::GetName() {
 
 void Session::screen() {
 	//Display session name and time created
-	printColor(name + "\n\n", YELLOW);
-	printColor(timestamp + "\n", YELLOW);
-	cout << "Total commands happened on screen: " << totalLines << "\n\n";
-	cout << "Previous command done: " << currentLine << "\n\n";
+	printColor("Welcome to " + name + "\n\n", YELLOW);
+	printColor("Time created: " + timestamp + "\n", YELLOW);
 
 	printPlaceHolderConsoles();
 	while (true) {
@@ -28,8 +26,12 @@ void Session::screen() {
 		printColor("~> ", CYAN);
 		std::getline(std::cin, command);
 		if (command == "process-smi") {
-			
-			currentLine = command;
+			printColor("Process name: " + name + "\n", CYAN);
+			printColor("ID: " + to_string(processPtr->GetPID()) + "\n", CYAN);
+			printColor("Current instruction line: " + to_string(printedLines.size()) + "/" + to_string(processPtr->GetBT()) + "\n", CYAN);
+			PrintProcessRunning();
+		}else if(command == "exit") {
+			break;
 		}
 	}
 	system("cls");
@@ -83,6 +85,13 @@ void Session::RunInstructions(int instructionToRun) {
 	}
 }
 
+void Session::PrintProcessRunning() {
+	printColor("Log: \n", CYAN);
+	for (string print : printedLines) {
+		printColor(print + "\n", INVERTED);
+	}
+}
+
 bool Session::CheckVariable(string input) {
 	for (char c : input) {
 		if (!isdigit(c)) {
@@ -129,7 +138,7 @@ int Session::ValueAssignment(string variable) {
 }
 
 void Session::PRINT(string msg) {
-	printedLines.push_back(getCurrentTimestamp() + " " + msg);
+	printedLines.push_back(getCurrentTimestamp() + " Core: " + to_string(processPtr->GetCoreValue()) + " " + msg);
 	totalLines++;
 }
 
@@ -196,7 +205,7 @@ void Session::FOR(int iterations) {
 		RunInstructions(instructionToRun);
 		
 	}
-	printedLines.push_back(getCurrentTimestamp() + " Looping finished!");
+	printedLines.push_back(getCurrentTimestamp() + " Core: " + to_string(processPtr->GetCoreValue()) + " Looping finished!");
 	totalLines++;
 }
 

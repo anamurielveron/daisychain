@@ -22,6 +22,7 @@
 #include "FCFSScheduler.h"
 #include "RRScheduler.h"
 #include "Session.h"
+#include "BaseScheduler.h"
 
 // Bring common C++ standard library elements into scope
 using namespace std;

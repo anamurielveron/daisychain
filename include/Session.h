@@ -34,6 +34,7 @@ public:
 	void screen();
 	void run();
 	void RunInstructions(int instructionToRun);
+	void PrintProcessRunning();
 	int FindVariable(string varInput);
 	bool CheckVariable(string input);
 	int ValueAssignment(string variable);
