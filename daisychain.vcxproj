@@ -25,6 +25,7 @@
     <ClCompile Include="src\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="config.txt" />
     <Text Include="data\banner.txt" />
   </ItemGroup>
   <ItemGroup>

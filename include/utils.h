@@ -1,5 +1,4 @@
-#ifndef UTILS_H
-#define UTILS_H
+#pragma once
 
 #include <string>
 
@@ -42,7 +41,7 @@ void printSubtitle();
 void printHelp();
 
 /**
-* @bref Prints the emulator's placeholder consoles
+* @brief Prints the emulator's placeholder consoles
 */
 void printPlaceHolderConsoles();
 
@@ -51,6 +50,9 @@ void printPlaceHolderConsoles();
  */
 void clear();
 
+/**
+ * @brief Gets the current timestamp as a formatted string.
+ *
+ * @return std::string The current timestamp in MM/DD/YYYY, HH:MM:SS AM/PM format.
+ */
 std::string getCurrentTimestamp();
-
-#endif // UTILS_H

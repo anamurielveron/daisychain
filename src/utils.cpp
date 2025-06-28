@@ -6,25 +6,24 @@
 #include <string>
 #include <iomanip>
 #include <sstream>
-#include <chrono>
-#include <windows.h>
+#include <windows.h> // For SYSTEMTIME and GetLocalTime
 
 /**
 * COLOR UTILS
 */
 std::string getColorCode(ConsoleColor color) {
-    switch (color) {
-    case RED:		return "\033[31m";
-    case GREEN:		return "\033[92m";
-    case YELLOW:	return "\033[93m";
-    case BLUE:		return "\033[94m";
-    case MAGENTA:	return "\033[95m";
-    case CYAN:		return "\033[96m";
-    case WHITE:		return "\033[37m";
+	switch (color) {
+	case RED:		return "\033[31m";
+	case GREEN:		return "\033[92m";
+	case YELLOW:	return "\033[93m";
+	case BLUE:		return "\033[94m";
+	case MAGENTA:	return "\033[95m";
+	case CYAN:		return "\033[96m";
+	case WHITE:		return "\033[37m";
 	case INVERTED:	return "\033[07m";
-    case RESET:		return "\033[0m";
-    default:		return "\033[0m";
-    }
+	case RESET:		return "\033[0m";
+	default:		return "\033[0m";
+	}
 }
 
 void printColor(const std::string& text, ConsoleColor color) {
@@ -32,7 +31,7 @@ void printColor(const std::string& text, ConsoleColor color) {
 }
 
 /**
-*  PRINT BANNER
+* PRINT BANNER
 */
 void printBanner() {
 	std::ifstream bannerFile("data/banner.txt");
@@ -53,7 +52,7 @@ void printBanner() {
 }
 
 /**
-*  PRINT SUBTITLE
+* PRINT SUBTITLE
 */
 void printSubtitle() {
 	std::cout << "------------------------------------------------------------" << std::endl;
@@ -74,17 +73,21 @@ void printSubtitle() {
 }
 
 /**
-*  PRINT HELP
+* PRINT HELP
 */
 void printHelp() {
+	std::cout << std::endl;
 	printColor("Available commands:\n", YELLOW);
 	printColor("initialize\n", GREEN);
-	printColor("screen\n", GREEN);
-	printColor("scheduler-test\n", GREEN);
+	printColor("screen -s <name>\n", GREEN);
+	printColor("screen -r <name>\n", GREEN);
+	printColor("screen -ls\n", GREEN);
+	printColor("scheduler-start\n", GREEN); // Renamed from scheduler-test
 	printColor("scheduler-stop\n", GREEN);
 	printColor("report-util\n", GREEN);
 	printColor("clear\n", GREEN);
 	printColor("exit\n", GREEN);
+	std::cout << std::endl;
 }
 
 /**
@@ -106,14 +109,13 @@ void printShortcut(const std::string& key, const std::string& label) {
 	std::cout << oss.str();
 }
 
-
 /**
 * PLACEHOLDER CONSOLES
 */
 void printPlaceHolderConsoles() {
 	std::vector<std::pair<std::string, std::string>> shortcuts = {
 	   {"^G", "Get Help"}, {"^O", "WriteOut "}, {"^R", "Read File"}, {"^Y", "Prev Page"},
-	   {"^K", "Cut Text"}, {"^C", "Cur Pos"},  {"^X", "Exit"}, {"^J", "Justify"},  
+	   {"^K", "Cut Text"}, {"^C", "Cur Pos"},  {"^X", "Exit"}, {"^J", "Justify"},
 	   {"^W", "Where Is"},  {"^V", "Next Page"},{"^U", "UnCut Text"},{"^T", "To Spell"}
 	};
 
@@ -144,7 +146,7 @@ std::string getCurrentTimestamp() {
 }
 
 /**
-*  CLEAR SCREEN
+* CLEAR SCREEN
 */
 void clear() {
 #ifdef _WIN32
