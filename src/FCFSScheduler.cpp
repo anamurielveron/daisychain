@@ -3,14 +3,13 @@ using namespace std;
 #include "FCFSScheduler.h"
 #include "utils.h"
 
-// --- SAFE PADDING FUNCTION ADDED ---
-string padNumber(int number, int width) {
+string padNumberFCFS(int number, int width) {
     string numStr = to_string(number);
     if (numStr.length() >= width)
         return numStr;
     return string(width - numStr.length(), '0') + numStr;
 }
-// ---------------------------------------
+
 
 FCFSScheduler::FCFSScheduler(int num_cores, unsigned int min_ins, unsigned int max_ins, int batch_freq, int delay_exec)
     : running(false), currentPidInc(1), cpuCycles(0), numCores(num_cores),
@@ -76,7 +75,7 @@ void FCFSScheduler::SchedulerLoop() {
                 bool assignedToCore = false;
                 for (int i = 0; i < numCores; ++i) {
                     if (!cores[i]) {
-                        string processName = "screen_" + padNumber(currentPidInc, 2);
+                        string processName = "screen_" + padNumberFCFS(currentPidInc, 2);
                         unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
                         cores[i] = std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName);
                         cores[i]->SetCoreValue(i);
@@ -86,7 +85,7 @@ void FCFSScheduler::SchedulerLoop() {
                     }
                 }
                 if (!assignedToCore) {
-                    string processName = "screen_" + padNumber(currentPidInc, 2);
+                    string processName = "screen_" + padNumberFCFS(currentPidInc, 2);
                     unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
                     readyQueue.push(std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName));
                     currentPidInc++;
@@ -111,7 +110,7 @@ void FCFSScheduler::CreateProcess(bool isBatch, const string& userProvidedName) 
 
     string processName;
     if (isBatch) {
-        processName = "screen_" + padNumber(currentPidInc, 2);
+        string processName = "screen_" + padNumberFCFS(currentPidInc, 2);
     }
     else {
         processName = userProvidedName;

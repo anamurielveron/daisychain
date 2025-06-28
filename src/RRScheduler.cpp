@@ -1,5 +1,12 @@
 #include "RRScheduler.h"
 
+string padNumber(int number, int width) {
+    string numStr = to_string(number);
+    if (numStr.length() >= width)
+        return numStr;
+    return string(width - numStr.length(), '0') + numStr;
+}
+
 
 RRScheduler::RRScheduler(int num_cores, int quantum_cycles, unsigned int min_ins, unsigned int max_ins, int batch_freq, int delay_exec)
     : running(false), currentPidInc(1), cpuCycles(0), numCores(num_cores), quantum(quantum_cycles),
@@ -20,7 +27,7 @@ RRScheduler::~RRScheduler() {
 void RRScheduler::Start() {
     if (!running) {
         running = true;
-        std::thread schedulerThread(&RRScheduler::SchedulerLoop, this);
+        schedulerThread = std::thread(&RRScheduler::SchedulerLoop, this); // store in member
     }
 }
 
@@ -96,7 +103,7 @@ void RRScheduler::SchedulerLoop() {
                 bool assignedToCore = false;
                 for (int i = 0; i < numCores; ++i) {
                     if (cores[i].isEmpty) {
-                        string processName = "screen_" + string(2 - to_string(currentPidInc).length(), '0') + to_string(currentPidInc);
+                        string processName = "screen_" + padNumber(currentPidInc, 2);
                         unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
                         unique_ptr<Screen> newProcess = std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName);
                         cores[i].proc = std::move(newProcess);
@@ -109,7 +116,7 @@ void RRScheduler::SchedulerLoop() {
                     }
                 }
                 if (!assignedToCore) {
-                    string processName = "screen_" + string(2 - to_string(currentPidInc).length(), '0') + to_string(currentPidInc);
+                    string processName = "screen_" + padNumber(currentPidInc, 2);
                     unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
                     readyQueue.push(std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName));
                     currentPidInc++;
@@ -137,7 +144,7 @@ void RRScheduler::CreateProcess(bool isBatch, const string& userProvidedName) {
 
     string processName;
     if (isBatch) {
-        processName = "screen_" + string(2 - to_string(currentPidInc).length(), '0') + to_string(currentPidInc);
+        processName = "screen_" + padNumber(currentPidInc, 2);
     }
     else {
         processName = userProvidedName;
