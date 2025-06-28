@@ -28,7 +28,7 @@
 using namespace std;
 
 // Global scheduler instance
-Config globalScheduler;
+Config globalScheduler {};
 
 //array of sessions for individual screen
 Session sessions[500];
@@ -47,10 +47,10 @@ struct Config {
 Config globalConfig; // Global config instance
 
 // Forward declarations
-class Process;
-class BaseScheduler; // Base class for schedulers
-class FCFSScheduler;
-class RRScheduler;
+class Process {};
+class BaseScheduler {}; // Base class for schedulers
+class FCFSScheduler {};
+class RRScheduler {};
 
 // Global scheduler instance (using a raw pointer to BaseScheduler for polymorphism)
 BaseScheduler* globalScheduler = nullptr;
@@ -228,7 +228,8 @@ int main() {
                         }
                         else {
                             globalScheduler->CreateProcess(false, processName); // Create a single non-batch process with user-provided name
-                            printColor("Screen/Process '" + processName + "' created. Use 'screen -ls' to see it.\n", GREEN);
+                            //printColor("Screen/Process '" + processName + "' created. Use 'screen -ls' to see it.\n", GREEN);
+                            globalScheduler->GetProcessByName(processName).screen();
                         }
                     }
                     else {
@@ -250,11 +251,13 @@ int main() {
                         if (targetProcess) { // Check if process is currently running/active in cores
                             // We explicitly check IsFinished() again inside the loop for robustness
                             // although GetProcessByName should ideally not return finished processes.
-                            if (targetProcess->IsFinished()) { // This check becomes more critical if GetProcessByName ever returns a finished process
+                            if (globalScheduler->GetProcessByName(processName).IsFinished()) { // This check becomes more critical if GetProcessByName ever returns a finished process
                                 printColor("Process '" + processName + "' has finished execution.\n", YELLOW);
                             }
                             else {
+                                globalScheduler->GetProcessByName(processName).screen();
                                 // Initial display of the process screen
+                                /*
                                 system("cls");
                                 printBanner();
                                 printColor("\n--- Process Screen: " + targetProcess->GetName() + " ---\n", YELLOW);
@@ -310,6 +313,7 @@ int main() {
                                         printColor("Unknown command within process screen.\n", RED);
                                     }
                                 }
+                                */
                                 // Clear screen and re-print main menu header when exiting process screen
                                 system("cls");
                                 printBanner();

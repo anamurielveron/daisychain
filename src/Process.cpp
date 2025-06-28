@@ -23,7 +23,7 @@ void Process::screen() {
 		if (command == "process-smi") {
 			printColor("Process name: " + name + "\n", CYAN);
 			printColor("ID: " + to_string(id) + "\n", CYAN);
-			printColor("Current instruction line: " + to_string(printedLines.size()) + "/" + to_string(totalInstructions) + "\n", CYAN);
+			printColor("Current instruction line: " + to_string(executedInstructions) + "/" + to_string(totalInstructions) + "\n", CYAN);
 			PrintProcessRunning();
 		}
 		else if (command == "exit") {
@@ -84,7 +84,7 @@ void Process::RunInstructions(int instructionToRun) {
 
 void Process::PrintProcessRunning() {
 	printColor("Log: \n", CYAN);
-	for (string print : printedLines) {
+	for (string print : printLogs) {
 		printColor(print + "\n", INVERTED);
 	}
 }
@@ -217,8 +217,7 @@ void Process::FOR(int iterations) {
 		}
 	}
 
-	printedLines.push_back(getCurrentTimestamp() + " Core: " + to_string(coreAssigned) + " Looping finished!");
-	executedInstructions++;
+	printLogs.push_back(getCurrentTimestamp() + " Core: " + to_string(coreAssigned) + " Looping finished!");
 }
 
 void Process::SLEEP(int cycles) {
@@ -226,6 +225,7 @@ void Process::SLEEP(int cycles) {
 	executedInstructions++;
 }
 
+/*
 void Process::ExecuteInstruction(int coreNum) {
     if (executedInstructions < totalInstructions) {
         executedInstructions++;
@@ -237,7 +237,9 @@ void Process::ExecuteInstruction(int coreNum) {
         finished.store(true); // Use store for atomic boolean
     }
 }
+*/
 
+/*
 void Process::AddPrintLog(const string& message, int coreNum) {
     SYSTEMTIME st;
     GetLocalTime(&st);
@@ -254,6 +256,7 @@ void Process::AddPrintLog(const string& message, int coreNum) {
     string logEntry = string(timestamp) + " Core: " + to_string(coreNum) + " " + message;
     printLogs.push_back(logEntry);
 }
+*/
 
 
 

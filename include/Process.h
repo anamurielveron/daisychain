@@ -26,7 +26,6 @@ private:
     atomic<bool> finished; // To indicate if the process has finished
     string printMsg;
     Variables vars[100];
-    list<string> printedLines;
     int nestedLoopNum = 0;
 
 public:
@@ -88,8 +87,8 @@ public:
     void SUB(string diff, string subend1, string subend2);
     void FOR(int iterations);
     void SLEEP(int cycles);
-    void ExecuteInstruction(int coreNum);
-    void AddPrintLog(const string& message, int coreNum);
+    //void ExecuteInstruction(int coreNum);
+    //void AddPrintLog(const string& message, int coreNum);
     int GetPID() const;
     string GetName() const;
     string GetArrivalTime() const; // Renamed for clarity
