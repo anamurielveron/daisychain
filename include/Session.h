@@ -19,7 +19,7 @@ class Session {
 	};
 
 	string name;
-	Process* processPtr = new Process();
+	Process* processPtr;
 	string currentLine;
 	int totalLines = 0;
 	string timestamp;

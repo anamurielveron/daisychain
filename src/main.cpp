@@ -27,14 +27,11 @@
 // Bring common C++ standard library elements into scope
 using namespace std;
 
-// Forward declarations
-
-
 // Global scheduler instance
-FCFSScheduler* globalScheduler = nullptr;
+Config globalScheduler;
 
 //array of sessions for individual screen
-Session sessions[100];
+Session sessions[500];
 
 // Global configuration parameters
 struct Config {

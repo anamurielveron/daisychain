@@ -9,37 +9,46 @@
 #include <iomanip>
 #include <sstream>
 
+#include "BaseScheduler.h"
 
-class RRScheduler {
+#ifndef RRSCHEDULER_H
+#define RRSCHEDULER_H
+
+class RRScheduler : public BaseScheduler {
 private:
-    static const int NUM_CORES = 4;
-    static const int QUANTUM = 10;
-
     struct CoreSlot {
-        Process proc;
+        unique_ptr<Process> proc; // Use unique_ptr
         int qRemaining;
         bool isEmpty;
 
         CoreSlot() : qRemaining(0), isEmpty(true) {}
     };
 
-    CoreSlot cores[NUM_CORES];
-    queue<Process> readyQueue;
-    queue<Process> doneQueue;
+    vector<CoreSlot> cores;
+    queue<unique_ptr<Process>> readyQueue; // Use unique_ptr
+    queue<unique_ptr<Process>> doneQueue; // Use unique_ptr
     mutex schedulerMutex;
     atomic<bool> running;
     atomic<int> currentPidInc;
-    Process emptyProcess;
     thread schedulerThread;
+    atomic<long long> cpuCycles; // Use long long for cycles
+    int numCores;
+    int quantum;
+    unsigned int minInstructions;
+    unsigned int maxInstructions;
+    int batchProcessFrequency;
+    int delayPerExecution;
 
 public:
-    RRScheduler();
+    RRScheduler(int num_cores, int quantum_cycles, unsigned int min_ins, unsigned int max_ins, int batch_freq, int delay_exec);
     ~RRScheduler();
-    void Start();
-    void Stop();
-    void SchedulerLoop();
-    void CreateProcess();
-    void DisplayStatus();
-    bool IsRunning();
-    queue<Process> GetFinishedProcesses();
+    void Start() override;
+    void Stop() override;
+    void SchedulerLoop() override;
+    void CreateProcess(bool isBatch = false, const string& userProvidedName = "") override;
+    void DisplayStatus(ostream& os) override;
+    bool IsRunning() override;
+    Process* GetProcessByName(const string& name) override;
 };
+
+#endif // RRSCHEDULER_H

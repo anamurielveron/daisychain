@@ -9,38 +9,15 @@
 
 using namespace std;
 
-void Process::NewProcess(int newId, int newBT, string timeArrived) {
-    id = newId;
-    bt = newBT;
-    at = timeArrived;
-    currentProcessedBT = 0;
-    processDone = false;
-    printLogs.clear();
-    core = -1;
-}
-
-void Process::IncreaseProcessBT() {
-    if (currentProcessedBT < bt) {
-        currentProcessedBT++;
+void Process::ExecuteInstruction(int coreNum) {
+    if (executedInstructions < totalInstructions) {
+        executedInstructions++;
+        // Simulate a PRINT instruction
+        string message = "\"Hello world from " + name + "! (Inst: " + to_string(executedInstructions) + ")\"";
+        AddPrintLog(message, coreNum);
     }
-}
-
-void Process::CreateNewFile() {
-    if (printLogs.empty()) return;
-
-    string filename = "process_" + to_string(id) + ".txt";
-    ofstream file(filename);
-
-    if (file.is_open()) {
-        file << "Process name: screen_" << setfill('0') << setw(2) << id << endl;
-        file << "Logs:" << endl;
-
-        for (const string& log : printLogs) {
-            file << log << endl;
-        }
-
-        file.close();
-        //cout << "Created file: " << filename << endl;
+    if (executedInstructions == totalInstructions) {
+        finished.store(true); // Use store for atomic boolean
     }
 }
 
@@ -57,14 +34,17 @@ void Process::AddPrintLog(const string& message, int coreNum) {
         st.wMonth, st.wDay, st.wYear,
         hour, st.wMinute, st.wSecond, am_pm.c_str());
 
-    string logEntry = string(timestamp) + " Core:" + to_string(coreNum) + " " + message;
+    string logEntry = string(timestamp) + " Core: " + to_string(coreNum) + " " + message;
     printLogs.push_back(logEntry);
 }
 
 int Process::GetPID() const { return id; }
-string Process::GetAT() const { return at; }
-int Process::GetCurrentProgress() const { return currentProcessedBT; }
-int Process::GetBT() const { return bt; }
-int Process::GetCoreValue() const { return core; }
-void Process::SetCoreValue(int value) { core = value; }
+string Process::GetName() const { return name; }
+string Process::GetArrivalTime() const { return arrivalTimestamp; }
+unsigned int Process::GetExecutedInstructions() const { return executedInstructions; }
+unsigned int Process::GetTotalInstructions() const { return totalInstructions; }
+int Process::GetCoreValue() const { return coreAssigned; }
+void Process::SetCoreValue(int value) { coreAssigned = value; }
 vector<string> Process::GetPrintLogs() const { return printLogs; }
+bool Process::IsFinished() const { return finished.load(); } // Use load for atomic boolean
+void Process::SetFinished(bool status) { finished.store(status); } // Use store for atomic boolean
