@@ -3,6 +3,7 @@
 #include <list>
 
 #include "utils.h"
+#include "Process.h"
 
 
 using namespace std;
@@ -18,6 +19,7 @@ class Session {
 	};
 
 	string name;
+	Process* processPtr = new Process();
 	string currentLine;
 	int totalLines = 0;
 	string timestamp;
@@ -27,10 +29,10 @@ class Session {
 	int nestedLoopNum = 0;
 
 public:
-	void newSession(string scrName, string timeCreated);
-	
+	void newSession(string scrName, string timeCreated, Process &assignedProcess);
 	string GetName();
 	void screen();
+	void run();
 	void RunInstructions(int instructionToRun);
 	int FindVariable(string varInput);
 	bool CheckVariable(string input);

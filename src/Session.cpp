@@ -2,10 +2,11 @@
 #include "utils.h"
 #include <windows.h>
 
-void Session::newSession(string scrName, string timeCreated) {
+void Session::newSession(string scrName, string timeCreated, Process &assignedProcess) {
 	name = scrName;
 	currentLine = "";
 	timestamp = timeCreated;
+	processPtr = &assignedProcess;
 
 	printMsg = "Hello from " + scrName + "!";
 }
@@ -26,72 +27,21 @@ void Session::screen() {
 		std::string command;
 		printColor("~> ", CYAN);
 		std::getline(std::cin, command);
-		if (command == "G") {
-			printColor("Getting help \n", YELLOW);
-			totalLines++;
+		if (command == "process-smi") {
+			
 			currentLine = command;
-		}
-		else if (command == "O") {
-			printColor("Writing Out \n", YELLOW);
-			totalLines++;
-			currentLine = command;
-		}
-		else if (command == "R") {
-			printColor("Reading File \n", YELLOW);
-			totalLines++;
-			currentLine = command;
-		}
-		else if (command == "Y") {
-			printColor("I guess we use a go-to to traverse pages? \n", YELLOW);
-			totalLines++;
-			currentLine = command;
-		}
-		else if (command == "K") {
-			printColor("Cutting Text \n", YELLOW);
-			totalLines++;
-			currentLine = command;
-		}
-		else if (command == "C") {
-			printColor("Current Position \n", YELLOW);
-			totalLines++;
-			currentLine = command;
-		}
-		else if (command == "J") {
-			printColor("Justifying \n", YELLOW);
-			totalLines++;
-			currentLine = command;
-		}
-		else if (command == "W") {
-			printColor("Some Strcmp fucntion to search? \n", YELLOW);
-			totalLines++;
-			currentLine = command;
-		}
-		else if (command == "V") {
-			printColor("Same as prev page, maybe a go-to to traverse? \n", YELLOW);
-			totalLines++;
-			currentLine = command;
-		}
-		else if (command == "U") {
-			printColor("Tf does this even mean? Undo? \n", YELLOW);
-			totalLines++;
-			currentLine = command;
-		}
-		else if (command == "T") {
-			printColor("Spelling \n", YELLOW);
-			totalLines++;
-			currentLine = command;
-		}
-		else if (command == "X") {
-			break;
-		}
-		else {
-			printColor("Unknown command\n", RED);
 		}
 	}
 	system("cls");
 
 	printBanner();
 	printSubtitle();
+}
+
+void Session::run() {
+	while (totalLines < processPtr->GetBT()) {
+		RunInstructions(rand() % 6);
+	}
 }
 
 void Session::RunInstructions(int instructionToRun) {
@@ -180,6 +130,7 @@ int Session::ValueAssignment(string variable) {
 
 void Session::PRINT(string msg) {
 	printedLines.push_back(getCurrentTimestamp() + " " + msg);
+	totalLines++;
 }
 
 void Session::DECLARE(string name, int val) {
@@ -198,6 +149,9 @@ void Session::DECLARE(string name, int val) {
 	else {
 		vars[foundIndex].value = val;
 	}
+
+	//printedLines.push_back(getCurrentTimestamp() + " New variable added: " + name);
+	totalLines++;
 }
 
 void Session::ADD(string sum, string addend1, string addend2) {
@@ -212,6 +166,9 @@ void Session::ADD(string sum, string addend1, string addend2) {
 	else {
 		vars[varSumIndex].value = tempSum;
 	}
+
+	//printedLines.push_back(getCurrentTimestamp() + " Added: " + addend1 + " + " + addend2 + " = " + sum);
+	totalLines++;
 }
 
 void Session::SUB(string diff, string subend1, string subend2) {
@@ -226,16 +183,24 @@ void Session::SUB(string diff, string subend1, string subend2) {
 	else {
 		vars[varDiffIndex].value = tempDiff;
 	}
+
+	//printedLines.push_back(getCurrentTimestamp() + " Subtracted: " + subend1 + " + " + subend2 + " = " + diff);
+	totalLines++;
 }
 
 void Session::FOR(int iterations) {
 	nestedLoopNum++;
+	int instructionToRun = rand() % 6;
 
 	for (int i = 0; i < iterations; i++) {
-		RunInstructions(rand() % 6);
+		RunInstructions(instructionToRun);
+		
 	}
+	printedLines.push_back(getCurrentTimestamp() + " Looping finished!");
+	totalLines++;
 }
 
 void Session::SLEEP(int cycles) {
 	Sleep(cycles);
+	totalLines++;
 }

@@ -19,9 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="FCFSScheduler.cpp" />
-    <ClCompile Include="Process.cpp" />
+    <ClCompile Include="src\FCFSScheduler.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Process.cpp" />
+    <ClCompile Include="src\Session.cpp" />
+    <ClCompile Include="src\RRScheduler.cpp" />
     <ClCompile Include="src\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -29,9 +31,11 @@
     <Text Include="data\banner.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="FCFSScheduler.h" />
+    <ClInclude Include="include\FCFSScheduler.h" />
+    <ClInclude Include="include\Process.h" />
+    <ClInclude Include="include\RRScheduler.h" />
+    <ClInclude Include="include\Session.h" />
     <ClInclude Include="include\utils.h" />
-    <ClInclude Include="Process.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

@@ -20,24 +20,21 @@
 #include "utils.h"
 #include "Process.h"
 #include "FCFSScheduler.h"
+#include "RRScheduler.h"
 #include "Session.h"
 
 // Bring common C++ standard library elements into scope
 using namespace std;
 
 // Forward declarations
-class Process;
-class FCFSScheduler;
+
 
 // Global scheduler instance
 FCFSScheduler* globalScheduler = nullptr;
 
-/**
-* SESSION CLASS
-*/
-
 //array of sessions for individual screen
-Session sessions[10];
+Session sessions[100];
+
 // Global configuration parameters
 struct Config {
     int num_cpu = 4;
