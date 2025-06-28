@@ -4,10 +4,227 @@
 #include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <list>
 #include <windows.h>
 #include "Process.h"
 
 using namespace std;
+
+void Process::screen() {
+	//Display session name and time created
+	printColor("Welcome to " + name + "\n\n", YELLOW);
+	printColor("Time created: " + arrivalTimestamp + "\n", YELLOW);
+
+	printPlaceHolderConsoles();
+	while (true) {
+		std::string command;
+		printColor("~> ", CYAN);
+		std::getline(std::cin, command);
+		if (command == "process-smi") {
+			printColor("Process name: " + name + "\n", CYAN);
+			printColor("ID: " + to_string(id) + "\n", CYAN);
+			printColor("Current instruction line: " + to_string(printedLines.size()) + "/" + to_string(totalInstructions) + "\n", CYAN);
+			PrintProcessRunning();
+		}
+		else if (command == "exit") {
+			break;
+		}
+	}
+	system("cls");
+
+	printBanner();
+	printSubtitle();
+}
+
+void Process::run() {
+	while (executedInstructions < totalInstructions) {
+		RunInstructions(rand() % 6);
+	}
+}
+
+void Process::RunInstructions(int instructionToRun) {
+	if (instructionToRun == 0) {
+		PRINT(printMsg);
+	}
+	else if (instructionToRun == 1) {
+		int varNum = rand() % 101;
+		string variable = "var" + to_string(varNum);
+		DECLARE(variable, rand() % 500);
+	}
+	else if (instructionToRun == 2) {
+		int varNum[3];
+		string variable[3];
+		for (int i = 0; i < 3; i++) {
+			varNum[i] = rand() % 101;
+			if(rand())
+				variable[i] = "var" + to_string(varNum[i]);
+		}
+
+		ADD(variable[0], variable[1], variable[2]);
+	}
+	else if (instructionToRun == 3) {
+		int varNum[3];
+		string variable[3];
+		for (int i = 0; i < 3; i++) {
+			varNum[i] = rand() % 101;
+			variable[i] = "var" + to_string(varNum[i]);
+		}
+
+		SUB(variable[0], variable[1], variable[2]);
+	}
+	else if (instructionToRun == 4) {
+		if (nestedLoopNum == 3) {
+			RunInstructions(rand() % 6);
+		}
+	}
+	else {
+		SLEEP(10);
+	}
+}
+
+void Process::PrintProcessRunning() {
+	printColor("Log: \n", CYAN);
+	for (string print : printedLines) {
+		printColor(print + "\n", INVERTED);
+	}
+}
+
+bool Process::CheckVariable(string input) {
+	for (char c : input) {
+		if (!isdigit(c)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+int Process::FindVariable(string varInput) {
+	for (int i = 0; i < 100;i++) {
+		if (vars[i].varName == varInput) {
+			return i;
+		}
+		else if (vars[i].varName == "empty") {
+			return -1;
+		}
+	}
+
+	return -1;
+}
+
+int Process::ValueAssignment(string variable) {
+	int foundIndex;
+	int constantVar;
+
+	if (CheckVariable(variable)) {
+		constantVar = stoi(variable);
+	}
+	else
+	{
+		foundIndex = FindVariable(variable);
+		if (foundIndex == -1) {
+			DECLARE(variable, 0);
+			constantVar = 0;
+		}
+		else {
+			constantVar = vars[foundIndex].value;
+		}
+	}
+
+	return constantVar;
+}
+
+void Process::PRINT(string msg) {
+	printedLines.push_back(getCurrentTimestamp() + " Core: " + to_string(coreAssigned) + " " + msg);
+	executedInstructions++;
+}
+
+void Process::DECLARE(string name, int val) {
+	bool exists = false;
+	int foundIndex = FindVariable(name);
+
+	if (foundIndex == -1) {
+		for (int i = 0; i < 100; i++) {
+			if (vars[i].varName == "empty") {
+				vars[i].varName = name;
+				vars[i].value = val;
+				break;
+			}
+		}
+	}
+	else {
+		vars[foundIndex].value = val;
+	}
+
+	//printedLines.push_back(getCurrentTimestamp() + " New variable added: " + name);
+	executedInstructions++;
+}
+
+void Process::ADD(string sum, string addend1, string addend2) {
+	int varSumIndex = FindVariable(sum);
+	int varAddEnd1 = ValueAssignment(addend1);
+	int varAddEnd2 = ValueAssignment(addend2);
+	int tempSum = varAddEnd1 + varAddEnd2;
+
+	if (varSumIndex == -1) {
+		DECLARE(sum, tempSum);
+	}
+	else {
+		vars[varSumIndex].value = tempSum;
+	}
+
+	//printedLines.push_back(getCurrentTimestamp() + " Added: " + addend1 + " + " + addend2 + " = " + sum);
+	executedInstructions++;
+}
+
+void Process::SUB(string diff, string subend1, string subend2) {
+	int varDiffIndex = FindVariable(diff);
+	int varSubEnd1 = ValueAssignment(subend1);
+	int varSubEnd2 = ValueAssignment(subend2);
+	int tempDiff = varSubEnd1 + varSubEnd2;
+
+	if (varDiffIndex == -1) {
+		DECLARE(diff, tempDiff);
+	}
+	else {
+		vars[varDiffIndex].value = tempDiff;
+	}
+
+	//printedLines.push_back(getCurrentTimestamp() + " Subtracted: " + subend1 + " + " + subend2 + " = " + diff);
+	executedInstructions++;
+}
+
+void Process::FOR(int iterations) {
+	nestedLoopNum++;
+	
+	list<int> instructionToRun;
+
+	if (rand() % 2 == 0) {
+		instructionToRun.push_back(rand() % 6);
+	}
+	else {
+		int i = 0;
+		int arrLen = (rand() % 10) + 2;
+		while(i < arrLen) {
+			instructionToRun.push_back(rand() % 6);
+			i++;
+		}
+	}
+
+	for (int i = 0; i < iterations; i++) {
+		for(int j: instructionToRun) {
+			RunInstructions(j);
+		}
+	}
+
+	printedLines.push_back(getCurrentTimestamp() + " Core: " + to_string(coreAssigned) + " Looping finished!");
+	executedInstructions++;
+}
+
+void Process::SLEEP(int cycles) {
+	Sleep(cycles);
+	executedInstructions++;
+}
 
 void Process::ExecuteInstruction(int coreNum) {
     if (executedInstructions < totalInstructions) {
@@ -37,6 +254,8 @@ void Process::AddPrintLog(const string& message, int coreNum) {
     string logEntry = string(timestamp) + " Core: " + to_string(coreNum) + " " + message;
     printLogs.push_back(logEntry);
 }
+
+
 
 int Process::GetPID() const { return id; }
 string Process::GetName() const { return name; }

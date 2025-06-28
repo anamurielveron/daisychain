@@ -28,7 +28,7 @@ void Session::screen() {
 		if (command == "process-smi") {
 			printColor("Process name: " + name + "\n", CYAN);
 			printColor("ID: " + to_string(processPtr->GetPID()) + "\n", CYAN);
-			printColor("Current instruction line: " + to_string(printedLines.size()) + "/" + to_string(processPtr->GetBT()) + "\n", CYAN);
+			printColor("Current instruction line: " + to_string(printedLines.size()) + "/" + to_string(processPtr->GetTotalInstructions()) + "\n", CYAN);
 			PrintProcessRunning();
 		}else if(command == "exit") {
 			break;
@@ -41,7 +41,7 @@ void Session::screen() {
 }
 
 void Session::run() {
-	while (totalLines < processPtr->GetBT()) {
+	while (totalLines < processPtr->GetTotalInstructions()) {
 		RunInstructions(rand() % 6);
 	}
 }
