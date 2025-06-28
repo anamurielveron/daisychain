@@ -19,10 +19,10 @@
 
 #include "utils.h"
 #include "Process.h"
+#include "BaseScheduler.h"
 #include "FCFSScheduler.h"
 #include "RRScheduler.h"
-#include "Session.h"
-#include "BaseScheduler.h"
+
 
 // Bring common C++ standard library elements into scope
 using namespace std;
@@ -30,8 +30,6 @@ using namespace std;
 // Global scheduler instance
 Config globalScheduler {};
 
-//array of sessions for individual screen
-Session sessions[500];
 
 // Global configuration parameters
 struct Config {

@@ -135,7 +135,7 @@ int Process::ValueAssignment(string variable) {
 }
 
 void Process::PRINT(string msg) {
-	printedLines.push_back(getCurrentTimestamp() + " Core: " + to_string(coreAssigned) + " " + msg);
+	printLogs.push_back(getCurrentTimestamp() + " Core: " + to_string(coreAssigned) + " " + msg);
 	executedInstructions++;
 }
 
@@ -225,19 +225,19 @@ void Process::SLEEP(int cycles) {
 	executedInstructions++;
 }
 
-/*
+
 void Process::ExecuteInstruction(int coreNum) {
     if (executedInstructions < totalInstructions) {
         executedInstructions++;
+		RunInstructions(rand()%6);
         // Simulate a PRINT instruction
-        string message = "\"Hello world from " + name + "! (Inst: " + to_string(executedInstructions) + ")\"";
-        AddPrintLog(message, coreNum);
+        //string message = "\"Hello world from " + name + "! (Inst: " + to_string(executedInstructions) + ")\"";
+        //AddPrintLog(message, coreNum);
     }
     if (executedInstructions == totalInstructions) {
         finished.store(true); // Use store for atomic boolean
     }
 }
-*/
 
 /*
 void Process::AddPrintLog(const string& message, int coreNum) {
