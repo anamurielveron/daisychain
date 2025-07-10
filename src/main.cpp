@@ -223,9 +223,16 @@ int main() {
                             printColor("Screen '" + processName + "' is already running.\n", MAGENTA);
                         }
                         else {
-                            globalScheduler->CreateProcess(false, processName); // Create a single non-batch process with user-provided name
-                            //printColor("Screen/Screen '" + processName + "' created. Use 'screen -ls' to see it.\n", GREEN);
-                            globalScheduler->GetProcessByName(processName)->screen();
+                            globalScheduler->CreateProcess(false, processName);
+
+                            // Safely fetch the created process
+                            Screen* newProcess = globalScheduler->GetProcessByName(processName);
+                            if (newProcess) {
+                                newProcess->screen(); // Enter the screen interface
+                            }
+                            else {
+                                printColor("Error: Failed to find newly created process '" + processName + "'.\n", RED);
+                            }
                         }
                     }
                     else {

@@ -1,0 +1,55 @@
+CPU Utilization: 100.00%
+Cores used: 4 / 4
+Cores available: 0 / 4
+Scheduling Algorithm: FCFS
+
+--------------------------------
+Running processes:
+screen_43    07/10/2025, 11:12:21 PM    Core: 0    46/169
+screen_42    07/10/2025, 11:12:21 PM    Core: 1    64/161
+screen_40    07/10/2025, 11:12:21 PM    Core: 2    126/146
+screen_41    07/10/2025, 11:12:21 PM    Core: 3    55/157
+
+Ready Queue Size: 1069
+
+Finished processes:
+screen_01    07/10/2025, 11:12:16 PM    Finished    127/127
+screen_03    07/10/2025, 11:12:16 PM    Finished    137/137
+screen_04    07/10/2025, 11:12:16 PM    Finished    149/149
+screen_02    07/10/2025, 11:12:16 PM    Finished    185/185
+screen_06    07/10/2025, 11:12:17 PM    Finished    110/110
+screen_05    07/10/2025, 11:12:17 PM    Finished    169/169
+screen_07    07/10/2025, 11:12:17 PM    Finished    157/157
+screen_08    07/10/2025, 11:12:17 PM    Finished    156/156
+screen_09    07/10/2025, 11:12:17 PM    Finished    159/159
+screen_12    07/10/2025, 11:12:17 PM    Finished    105/105
+screen_10    07/10/2025, 11:12:17 PM    Finished    162/162
+screen_11    07/10/2025, 11:12:17 PM    Finished    170/170
+screen_13    07/10/2025, 11:12:17 PM    Finished    129/129
+screen_14    07/10/2025, 11:12:18 PM    Finished    121/121
+screen_15    07/10/2025, 11:12:18 PM    Finished    118/118
+screen_16    07/10/2025, 11:12:18 PM    Finished    110/110
+screen_18    07/10/2025, 11:12:18 PM    Finished    143/143
+screen_20    07/10/2025, 11:12:18 PM    Finished    132/132
+screen_19    07/10/2025, 11:12:18 PM    Finished    168/168
+screen_17    07/10/2025, 11:12:18 PM    Finished    197/197
+screen_24    07/10/2025, 11:12:19 PM    Finished    111/111
+screen_21    07/10/2025, 11:12:18 PM    Finished    150/150
+screen_23    07/10/2025, 11:12:19 PM    Finished    165/165
+screen_22    07/10/2025, 11:12:19 PM    Finished    188/188
+screen_25    07/10/2025, 11:12:19 PM    Finished    101/101
+screen_26    07/10/2025, 11:12:19 PM    Finished    128/128
+screen_28    07/10/2025, 11:12:19 PM    Finished    182/182
+screen_27    07/10/2025, 11:12:19 PM    Finished    195/195
+screen_29    07/10/2025, 11:12:19 PM    Finished    199/199
+screen_30    07/10/2025, 11:12:19 PM    Finished    156/156
+hello    07/10/2025, 11:12:20 PM    Finished    141/141
+screen_32    07/10/2025, 11:12:20 PM    Finished    158/158
+screen_31    07/10/2025, 11:12:20 PM    Finished    188/188
+screen_34    07/10/2025, 11:12:20 PM    Finished    194/194
+screen_36    07/10/2025, 11:12:20 PM    Finished    129/129
+screen_35    07/10/2025, 11:12:20 PM    Finished    162/162
+screen_37    07/10/2025, 11:12:20 PM    Finished    175/175
+screen_38    07/10/2025, 11:12:20 PM    Finished    169/169
+screen_39    07/10/2025, 11:12:20 PM    Finished    119/119
+--------------------------------

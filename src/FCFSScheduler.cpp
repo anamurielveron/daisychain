@@ -206,5 +206,5 @@ Screen* FCFSScheduler::GetProcessByName(const string& name) {
         tempReadyQueue.pop();
     }
 
-    return nullptr;
+    return foundProcess;
 }

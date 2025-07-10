@@ -221,10 +221,34 @@ bool RRScheduler::IsRunning() {
 
 Screen* RRScheduler::GetProcessByName(const string& name) {
     lock_guard<mutex> lock(schedulerMutex);
+
+    // Searching within cores
     for (int i = 0; i < numCores; ++i) {
         if (!cores[i].isEmpty && cores[i].proc && cores[i].proc->GetName() == name && !cores[i].proc->IsFinished()) {
             return cores[i].proc.get(); // Return raw pointer
         }
     }
-    return nullptr; // Not found in running cores
+
+    // Searching within Ready Queue 
+    queue<unique_ptr<Screen>> tempQueue;
+    Screen* found = nullptr;
+
+    while (!readyQueue.empty()) {
+        unique_ptr<Screen> p = std::move(readyQueue.front());
+        readyQueue.pop();
+
+        if (p->GetName() == name && !p->IsFinished()) {
+            found = p.get();  // Save pointer to return after re-queueing
+        }
+
+        tempQueue.push(std::move(p)); // Preserve original queue
+    }
+
+    // Restore readyQueue
+    while (!tempQueue.empty()) {
+        readyQueue.push(std::move(tempQueue.front()));
+        tempQueue.pop();
+    }
+
+    return found; // May be nullptr if not found
 }
