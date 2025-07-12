@@ -106,6 +106,9 @@ bool readConfig(Config& config) {
 }
 
 void initialize() {
+
+    Memory mem(16384, 4096);
+
     printColor("\"initialize\" command recognized. Initializing scheduler...\n", YELLOW);
     if (scheduler_initialized.load()) { // Use load for atomic boolean
         printColor("Scheduler already initialized. Please stop it first if you want to re-initialize.\n", YELLOW);
@@ -227,6 +230,7 @@ void reportUtil() {
 * MAIN FUNCTION
 */
 int main() {
+
     // For ensuring consistent output on Windows console for colors
 #ifdef _WIN32
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
