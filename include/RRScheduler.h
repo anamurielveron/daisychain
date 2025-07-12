@@ -50,6 +50,8 @@ public:
     void DisplayStatus(ostream& os) override;
     bool IsRunning() override;
     Screen* GetProcessByName(const string& name) override;
+
+    void SetBatchEnabled(bool enabled) override;
 };
 
 #endif // RRSCHEDULER_H

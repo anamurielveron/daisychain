@@ -35,7 +35,7 @@ void FCFSScheduler::Stop() {
         if (schedulerThread.joinable()) {
             schedulerThread.join();
         }
-    }
+    } 
 }
 
 void FCFSScheduler::SchedulerLoop() {
@@ -71,7 +71,7 @@ void FCFSScheduler::SchedulerLoop() {
                 }
             }
 
-            if (batchProcessFrequency > 0 && cpuCycles % batchProcessFrequency == 0) {
+            if (enableBatchFlag && batchProcessFrequency > 0 && cpuCycles % batchProcessFrequency == 0) {
                 bool assignedToCore = false;
                 for (int i = 0; i < numCores; ++i) {
                     if (!cores[i]) {
@@ -208,3 +208,9 @@ Screen* FCFSScheduler::GetProcessByName(const string& name) {
 
     return nullptr;
 }
+
+void FCFSScheduler::SetBatchEnabled(bool enabled) {
+    enableBatchFlag.store(enabled);
+}
+
+

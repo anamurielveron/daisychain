@@ -22,6 +22,8 @@ public:
     // and to return nullptr if the process is finished, so the main thread
     // doesn't try to access a deallocated object.
     virtual Screen* GetProcessByName(const string& name) = 0;
+
+    virtual void SetBatchEnabled(bool enabled) = 0; // Dummy generation
 };
 
 #endif // BASESCHEDULER

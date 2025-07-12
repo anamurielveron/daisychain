@@ -114,6 +114,8 @@ void initialize() {
             printColor("Invalid scheduler type specified in config.txt. Defaulting to FCFS.\n", RED);
             globalScheduler = new FCFSScheduler(globalConfig.num_cpu, globalConfig.min_ins, globalConfig.max_ins, globalConfig.batch_process_freq, globalConfig.delay_per_exec);
         }
+        globalScheduler->SetBatchEnabled(true); // Start Dummy
+
         globalScheduler->Start();
         scheduler_initialized.store(true); // Use store for atomic boolean
         printColor("Scheduler initialized with " + to_string(globalConfig.num_cpu) + " cores.\n", GREEN);
@@ -140,10 +142,8 @@ void schedulerStart() { // Renamed from schedulerTest
 void schedulerStop() {
     printColor("\"scheduler-stop\" command recognized. Stopping scheduler...\n", YELLOW);
     if (globalScheduler != nullptr) {
-        globalScheduler->Stop();
-        delete globalScheduler;
-        globalScheduler = nullptr;
-        scheduler_initialized.store(false); // Use store for atomic boolean
+        globalScheduler->SetBatchEnabled(false); // Just stop dummy processes
+        printColor("Batch process generation stopped. Scheduler will finish remaining processes.\n", GREEN);
         printColor("Scheduler stopped.\n", GREEN);
     }
     else {

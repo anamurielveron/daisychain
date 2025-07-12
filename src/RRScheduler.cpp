@@ -228,3 +228,7 @@ Screen* RRScheduler::GetProcessByName(const string& name) {
     }
     return nullptr; // Not found in running cores
 }
+
+void RRScheduler::SetBatchEnabled(bool enabled) {
+    batchProcessFrequency = enabled ? 1 : 0;
+}

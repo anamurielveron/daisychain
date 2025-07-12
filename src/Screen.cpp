@@ -136,7 +136,6 @@ int Screen::ValueAssignment(string variable) {
 
 void Screen::PRINT(string msg) {
 	printLogs.push_back(getCurrentTimestamp() + " Core: " + to_string(coreAssigned) + " " + msg);
-	executedInstructions++;
 }
 
 void Screen::DECLARE(string name, int val) {
@@ -157,7 +156,6 @@ void Screen::DECLARE(string name, int val) {
 	}
 
 	//printedLines.push_back(getCurrentTimestamp() + " New variable added: " + name);
-	executedInstructions++;
 }
 
 void Screen::ADD(string sum, string addend1, string addend2) {
@@ -174,7 +172,6 @@ void Screen::ADD(string sum, string addend1, string addend2) {
 	}
 
 	//printedLines.push_back(getCurrentTimestamp() + " Added: " + addend1 + " + " + addend2 + " = " + sum);
-	executedInstructions++;
 }
 
 void Screen::SUB(string diff, string subend1, string subend2) {
@@ -191,7 +188,6 @@ void Screen::SUB(string diff, string subend1, string subend2) {
 	}
 
 	//printedLines.push_back(getCurrentTimestamp() + " Subtracted: " + subend1 + " + " + subend2 + " = " + diff);
-	executedInstructions++;
 }
 
 void Screen::FOR(int iterations) {
@@ -222,21 +218,20 @@ void Screen::FOR(int iterations) {
 
 void Screen::SLEEP(int cycles) {
 	Sleep(cycles);
-	executedInstructions++;
 }
 
 
 void Screen::ExecuteInstruction(int coreNum) {
-    if (executedInstructions < totalInstructions) {
-        executedInstructions++;
-		RunInstructions(rand()%6);
-        // Simulate a PRINT instruction
-        //string message = "\"Hello world from " + name + "! (Inst: " + to_string(executedInstructions) + ")\"";
-        //AddPrintLog(message, coreNum);
-    }
-    if (executedInstructions == totalInstructions) {
-        finished.store(true); // Use store for atomic boolean
-    }
+	if (executedInstructions < totalInstructions) {
+		executedInstructions++;
+		RunInstructions(rand() % 6);
+		// Simulate a PRINT instruction
+		//string message = "\"Hello world from " + name + "! (Inst: " + to_string(executedInstructions) + ")\"";
+		//AddPrintLog(message, coreNum);
+		if (executedInstructions == totalInstructions) {
+			finished.store(true); // Use store for atomic boolean
+		}
+	}
 }
 
 /*
