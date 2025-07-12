@@ -16,7 +16,7 @@ Memory::Memory(int mem_limit, int frame_mem)
 void Memory::FF_AssignProcessToFrame(string process, int processSize) {
 	int mem_to_alloc = processSize / mem_per_frame;
 
-	int i, j = 0;
+	int i = 0, j = 0;
 
 	while (i < num_of_frames) {
 		int slotFound = 0;

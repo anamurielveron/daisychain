@@ -10,7 +10,7 @@ using namespace std;
 
 class Frame {
 	int frame_mem;
-	int address;
+	int address = 0;
 	string process;
 	bool is_occupied;
 
