@@ -8,10 +8,11 @@ string padNumber(int number, int width) {
 }
 
 
-RRScheduler::RRScheduler(int num_cores, int quantum_cycles, unsigned int min_ins, unsigned int max_ins, int batch_freq, int delay_exec)
+RRScheduler::RRScheduler(int num_cores, int quantum_cycles, unsigned int min_ins,
+    unsigned int max_ins, int batch_freq, int delay_exec, Memory* mem_ptr)
     : running(false), currentPidInc(1), cpuCycles(0), numCores(num_cores), quantum(quantum_cycles),
     minInstructions(min_ins), maxInstructions(max_ins), batchProcessFrequency(batch_freq),
-    delayPerExecution(delay_exec) {
+    delayPerExecution(delay_exec), memory(mem_ptr) {
     cores.resize(numCores);
     for (int i = 0; i < numCores; i++) {
         cores[i].proc = nullptr; // Initialize unique_ptr to nullptr
@@ -96,6 +97,10 @@ void RRScheduler::SchedulerLoop() {
                         }
                     }
                 }
+            }
+
+            if (memory != nullptr) {
+                memory->GenerateMemoryReport(cpuCycles);
             }
 
             // Generate new processes based on batchProcessFrequency

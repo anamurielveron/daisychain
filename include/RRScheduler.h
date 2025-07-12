@@ -11,6 +11,9 @@
 #include <sstream>
 
 #include "BaseScheduler.h"
+#include "Memory.h"
+#include <atomic>
+
 
 #ifndef RRSCHEDULER_H
 #define RRSCHEDULER_H
@@ -39,9 +42,10 @@ private:
     unsigned int maxInstructions;
     int batchProcessFrequency;
     int delayPerExecution;
+    Memory* memory;
 
 public:
-    RRScheduler(int num_cores, int quantum_cycles, unsigned int min_ins, unsigned int max_ins, int batch_freq, int delay_exec);
+    RRScheduler(int num_cores, int quantum_cycles, unsigned int min_ins, unsigned int max_ins, int batch_freq, int delay_exec, Memory* mem_ptr);
     ~RRScheduler();
     void Start() override;
     void Stop() override;
