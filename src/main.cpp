@@ -95,6 +95,9 @@ bool readConfig(Config& config) {
 }
 
 void initialize() {
+
+    Memory mem(16384, 4096);
+
     printColor("\"initialize\" command recognized. Initializing scheduler...\n", YELLOW);
     if (scheduler_initialized.load()) { // Use load for atomic boolean
         printColor("Scheduler already initialized. Please stop it first if you want to re-initialize.\n", YELLOW);
@@ -107,7 +110,7 @@ void initialize() {
             printColor("FCFS Scheduler configured.\n", GREEN);
         }
         else if (globalConfig.scheduler_type == "rr") {
-            globalScheduler = new RRScheduler(globalConfig.num_cpu, globalConfig.quantum_cycles, globalConfig.min_ins, globalConfig.max_ins, globalConfig.batch_process_freq, globalConfig.delay_per_exec);
+            globalScheduler = new RRScheduler(globalConfig.num_cpu, globalConfig.quantum_cycles, globalConfig.min_ins, globalConfig.max_ins, globalConfig.batch_process_freq, globalConfig.delay_per_exec, &mem);
             printColor("Round Robin Scheduler configured (Quantum: " + to_string(globalConfig.quantum_cycles) + ").\n", GREEN);
         }
         else {
@@ -178,6 +181,7 @@ void reportUtil() {
 * MAIN FUNCTION
 */
 int main() {
+
     // For ensuring consistent output on Windows console for colors
 #ifdef _WIN32
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
