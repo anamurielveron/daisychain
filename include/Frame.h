@@ -13,6 +13,9 @@ class Frame {
 	int address = 0;
 	string process;
 	bool is_occupied;
+	int lower_bound;
+	int upper_bound;
+	std::string contents;
 
 public:
 	void newFrame(int frameMem, int frame_add);
