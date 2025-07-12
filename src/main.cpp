@@ -36,6 +36,9 @@ struct Config {
     unsigned int min_ins = 1000;
     unsigned int max_ins = 2000;
     int delay_per_exec = 0;
+    int max_overall_mem = 16384;
+    int mem_per_frame = 16;
+    int mem_per_proc = 4096;
 };
 
 Config globalConfig; // Global config instance
@@ -60,13 +63,11 @@ bool readConfig(Config& config) {
         printColor("Error: Failed to open config.txt. Using default parameters.\n", RED);
         return false;
     }
-
     string line;
     while (getline(configFile, line)) {
         stringstream ss(line);
         string paramName;
         ss >> paramName;
-
         if (paramName == "num-cpu") {
             ss >> config.num_cpu;
         }
@@ -88,6 +89,16 @@ bool readConfig(Config& config) {
         else if (paramName == "delay-per-exec") {
             ss >> config.delay_per_exec;
         }
+        // Memory-related parameters
+        else if (paramName == "max-overall-mem") {
+            ss >> config.max_overall_mem;
+        }
+        else if (paramName == "mem-per-frame") {
+            ss >> config.mem_per_frame;
+        }
+        else if (paramName == "mem-per-proc") {
+            ss >> config.mem_per_proc;
+        }
     }
     configFile.close();
     printColor("Config loaded successfully from config.txt.\n", GREEN);
@@ -100,29 +111,67 @@ void initialize() {
         printColor("Scheduler already initialized. Please stop it first if you want to re-initialize.\n", YELLOW);
         return;
     }
-
     if (readConfig(globalConfig)) { // Read config parameters
+        // Create Memory object first using memory parameters from config
+        Memory* memory = new Memory(
+            globalConfig.max_overall_mem,  // mem_limit
+            globalConfig.mem_per_frame     // frame_mem
+        );
+
         if (globalConfig.scheduler_type == "fcfs") {
-            globalScheduler = new FCFSScheduler(globalConfig.num_cpu, globalConfig.min_ins, globalConfig.max_ins, globalConfig.batch_process_freq, globalConfig.delay_per_exec);
+            // Assuming FCFSScheduler also needs Memory parameter - update constructor call as needed
+            globalScheduler = new FCFSScheduler(
+                globalConfig.num_cpu,
+                globalConfig.min_ins,
+                globalConfig.max_ins,
+                globalConfig.batch_process_freq,
+                globalConfig.delay_per_exec
+            );
             printColor("FCFS Scheduler configured.\n", GREEN);
         }
         else if (globalConfig.scheduler_type == "rr") {
-            globalScheduler = new RRScheduler(globalConfig.num_cpu, globalConfig.quantum_cycles, globalConfig.min_ins, globalConfig.max_ins, globalConfig.batch_process_freq, globalConfig.delay_per_exec);
+            globalScheduler = new RRScheduler(
+                globalConfig.num_cpu,
+                globalConfig.quantum_cycles,
+                globalConfig.min_ins,
+                globalConfig.max_ins,
+                globalConfig.batch_process_freq,
+                globalConfig.delay_per_exec,
+                memory
+            );
             printColor("Round Robin Scheduler configured (Quantum: " + to_string(globalConfig.quantum_cycles) + ").\n", GREEN);
         }
         else {
             printColor("Invalid scheduler type specified in config.txt. Defaulting to FCFS.\n", RED);
-            globalScheduler = new FCFSScheduler(globalConfig.num_cpu, globalConfig.min_ins, globalConfig.max_ins, globalConfig.batch_process_freq, globalConfig.delay_per_exec);
+            // Assuming FCFSScheduler also needs Memory parameter - update constructor call as needed
+            globalScheduler = new FCFSScheduler(
+                globalConfig.num_cpu,
+                globalConfig.min_ins,
+                globalConfig.max_ins,
+                globalConfig.batch_process_freq,
+                globalConfig.delay_per_exec
+            );
         }
         globalScheduler->SetBatchEnabled(true); // Start Dummy
-
         globalScheduler->Start();
         scheduler_initialized.store(true); // Use store for atomic boolean
         printColor("Scheduler initialized with " + to_string(globalConfig.num_cpu) + " cores.\n", GREEN);
     }
     else {
         printColor("Failed to load config. Using default scheduler (FCFS) and parameters.\n", YELLOW);
-        globalScheduler = new FCFSScheduler(globalConfig.num_cpu, globalConfig.min_ins, globalConfig.max_ins, globalConfig.batch_process_freq, globalConfig.delay_per_exec);
+        // Create Memory object with default parameters
+        Memory* memory = new Memory(
+            globalConfig.max_overall_mem,  // mem_limit
+            globalConfig.mem_per_frame     // frame_mem
+        );
+        // Assuming FCFSScheduler also needs Memory parameter - update constructor call as needed
+        globalScheduler = new FCFSScheduler(
+            globalConfig.num_cpu,
+            globalConfig.min_ins,
+            globalConfig.max_ins,
+            globalConfig.batch_process_freq,
+            globalConfig.delay_per_exec
+        );
         globalScheduler->Start();
         scheduler_initialized.store(true); // Use store for atomic boolean
     }
