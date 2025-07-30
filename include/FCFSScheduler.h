@@ -41,9 +41,11 @@ private:
 
     std::atomic<bool> enableBatchFlag;
 
+    Memory* memory;
+
 
 public:
-    FCFSScheduler(int num_cores, unsigned int min_ins, unsigned int max_ins, int batch_freq, int delay_exec);
+    FCFSScheduler(int num_cores, unsigned int min_ins, unsigned int max_ins, int batch_freq, int delay_exec, Memory* mem = nullptr);
     ~FCFSScheduler();
     void Start() override;
     void Stop() override;

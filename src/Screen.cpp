@@ -8,6 +8,11 @@
 #include <windows.h>
 #include "Screen.h"
 
+#include "Memory.h"
+#include <atomic>
+#include <algorithm>
+
+
 using namespace std;
 
 void Screen::screen() {
@@ -15,7 +20,12 @@ void Screen::screen() {
 	printColor("Welcome to " + name + "\n\n", YELLOW);
 	printColor("Time created: " + arrivalTimestamp + "\n", YELLOW);
 
+	for (const auto& instr : instructions) {
+		ExecuteStringInstruction(instr);
+	}
+
 	printPlaceHolderConsoles();
+
 	while (true) {
 		std::string command;
 		printColor("~> ", CYAN);
@@ -178,7 +188,7 @@ void Screen::SUB(string diff, string subend1, string subend2) {
 	int varDiffIndex = FindVariable(diff);
 	int varSubEnd1 = ValueAssignment(subend1);
 	int varSubEnd2 = ValueAssignment(subend2);
-	int tempDiff = varSubEnd1 + varSubEnd2;
+	int tempDiff = varSubEnd1 - varSubEnd2;
 
 	if (varDiffIndex == -1) {
 		DECLARE(diff, tempDiff);
@@ -253,7 +263,24 @@ void Screen::AddPrintLog(const string& message, int coreNum) {
 }
 */
 
-Screen::Screen(const string& processName, int memorySize, const vector<string>& instructions)
+Screen::Screen(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName)
+	: id(newId),
+	totalInstructions(newTotalInstructions),
+	executedInstructions(0),
+	arrivalTimestamp(timeArrived),
+	coreAssigned(-1),
+	name(processName),
+	finished(false),
+	memory(nullptr) // important to initialize
+{
+	instructions.clear(); // if you want it empty
+	for (int i = 0; i < 100; ++i) {
+		vars[i].varName = "empty";
+		vars[i].value = 0;
+	}
+}
+
+Screen::Screen(const string& processName, Memory* mem, const vector<string>& instructions)
 	: id(-1),
 	totalInstructions(instructions.size()),
 	executedInstructions(0),
@@ -261,14 +288,190 @@ Screen::Screen(const string& processName, int memorySize, const vector<string>& 
 	coreAssigned(-1),
 	name(processName),
 	finished(false),
-	instructions(instructions) // Initialize the instruction list
+	memory(mem),
+	instructions(instructions)
 {
-	for (int i = 0; i < memorySize && i < 100; ++i) {
+	for (int i = 0; i < 100; ++i) {
 		vars[i].varName = "empty";
 		vars[i].value = 0;
 	}
 }
 
+
+
+Screen::Screen(const string& processName, int memorySize, const vector<string>& instr, Memory* mem)
+	: id(-1),
+	totalInstructions(instr.size()),
+	executedInstructions(0),
+	arrivalTimestamp(getCurrentTimestamp()),
+	coreAssigned(-1),
+	name(processName),
+	finished(false),
+	instructions(instr),
+	memory(mem) 
+{
+	for (int i = 0; i < 100; ++i) {  // Initialize ALL 100 variables
+		vars[i].varName = "empty";
+		vars[i].value = 0;
+	}
+}
+
+Screen::Screen(Screen&& other) noexcept
+	: id(other.id),
+	totalInstructions(other.totalInstructions),
+	executedInstructions(other.executedInstructions),
+	arrivalTimestamp(std::move(other.arrivalTimestamp)),
+	coreAssigned(other.coreAssigned),
+	printLogs(std::move(other.printLogs)),
+	name(std::move(other.name)),
+	finished(other.finished.load()),
+	nestedLoopNum(other.nestedLoopNum),
+	instructions(std::move(other.instructions)),
+	memory(other.memory)
+{
+	// Copy the vars array
+	for (int i = 0; i < 100; ++i) {
+		vars[i] = other.vars[i];
+	}
+
+	// Reset the other object
+	other.id = -1;
+	other.totalInstructions = 0;
+	other.executedInstructions = 0;
+	other.coreAssigned = -1;
+	other.finished.store(false);
+	other.nestedLoopNum = 0;
+	other.memory = nullptr;
+}
+
+
+void Screen::ExecuteStringInstruction(const std::string& instr) {
+	istringstream iss(instr);
+	string opcode;
+	iss >> opcode;
+
+	if (opcode == "DECLARE") {
+		string varName, valueStr;
+		iss >> varName >> valueStr;
+		int value = this->ValueAssignment(valueStr);
+		this->DECLARE(varName, value);
+	}
+	else if (opcode == "ADD") {
+		string target, op1, op2;
+		iss >> target >> op1 >> op2;
+		this->ADD(target, op1, op2);
+	}
+	else if (opcode == "SUB") {
+		string target, op1, op2;
+		iss >> target >> op1 >> op2;
+		this->SUB(target, op1, op2);
+	}
+	else if (opcode == "WRITE") {
+		string addressStr, sourceVar;
+		iss >> addressStr >> sourceVar;
+
+		// Safety check for memory pointer
+		if (!this->memory) {
+			printColor("Error: Memory object is null for WRITE operation\n", RED);
+			return;
+		}
+
+		try {
+			int addr = std::stoi(addressStr, nullptr, 0); // handles hex like 0x500
+			int value = this->ValueAssignment(sourceVar);
+
+			printColor("WRITE: Writing value " + to_string(value) + " to address " + addressStr + "\n", CYAN);
+
+			this->memory->Write(addr, value);
+
+			printColor("WRITE operation completed successfully\n", GREEN);
+		}
+		catch (const std::exception& e) {
+			printColor("Error in WRITE operation: " + string(e.what()) + "\n", RED);
+		}
+	}
+	else if (opcode == "READ") {
+		string destVar, addressStr;
+		iss >> destVar >> addressStr;
+
+		// Safety check for memory pointer
+		if (!this->memory) {
+			printColor("Error: Memory object is null for READ operation\n", RED);
+			return;
+		}
+
+		try {
+			int addr = std::stoi(addressStr, nullptr, 0);
+
+			printColor("READ: Reading from address " + addressStr + "\n", CYAN);
+
+			int value = this->memory->Read(addr);
+			this->DECLARE(destVar, value);
+
+			printColor("READ operation completed successfully, value: " + to_string(value) + "\n", GREEN);
+		}
+		catch (const std::exception& e) {
+			printColor("Error in READ operation: " + string(e.what()) + "\n", RED);
+		}
+	}
+	else if (opcode == "PRINT") {
+		string rest;
+		getline(iss, rest);
+
+		// Handle PRINT("text" + variable) format
+		size_t openParen = rest.find('(');
+		size_t closeParen = rest.rfind(')');
+
+		if (openParen != string::npos && closeParen != string::npos) {
+			string content = rest.substr(openParen + 1, closeParen - openParen - 1);
+
+			size_t openQuote = content.find('"');
+			size_t closeQuote = content.find('"', openQuote + 1);
+
+			if (openQuote != string::npos && closeQuote != string::npos) {
+				string literal = content.substr(openQuote + 1, closeQuote - openQuote - 1);
+
+				// Check for concatenation with +
+				size_t plusPos = content.find('+', closeQuote);
+				if (plusPos != string::npos) {
+					string varName = content.substr(plusPos + 1);
+					varName.erase(0, varName.find_first_not_of(" \t"));
+					varName.erase(varName.find_last_not_of(" \t") + 1);
+
+					int val = this->ValueAssignment(varName);
+					this->PRINT(literal + to_string(val));
+				}
+				else {
+					this->PRINT(literal);
+				}
+			}
+		}
+		else {
+			// Fallback to original parsing
+			size_t openQuote = rest.find('"');
+			size_t closeQuote = rest.rfind('"');
+
+			if (openQuote != string::npos && closeQuote != string::npos && closeQuote > openQuote) {
+				string content = rest.substr(openQuote + 1, closeQuote - openQuote - 1);
+				size_t plusPos = content.find('+');
+				if (plusPos != string::npos) {
+					string literal = content.substr(0, plusPos);
+					string varName = content.substr(plusPos + 1);
+					varName.erase(remove_if(varName.begin(), varName.end(), ::isspace), varName.end());
+					int val = this->ValueAssignment(varName);
+					this->PRINT(literal + to_string(val));
+				}
+				else {
+					this->PRINT(content);
+				}
+			}
+		}
+	}
+}
+
+void Screen::SetPID(int newId) {
+	id = newId;
+}
 
 
 

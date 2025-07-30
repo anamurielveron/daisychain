@@ -128,7 +128,8 @@ void initialize() {
                 globalConfig.min_ins,
                 globalConfig.max_ins,
                 globalConfig.batch_process_freq,
-                globalConfig.delay_per_exec
+                globalConfig.delay_per_exec,
+                memory
             );
             printColor("FCFS Scheduler configured.\n", GREEN);
         }
@@ -152,7 +153,8 @@ void initialize() {
                 globalConfig.min_ins,
                 globalConfig.max_ins,
                 globalConfig.batch_process_freq,
-                globalConfig.delay_per_exec
+                globalConfig.delay_per_exec,
+                memory
             );
         }
         globalScheduler->SetBatchEnabled(true); // Start Dummy
@@ -309,11 +311,11 @@ int main() {
                         if (targetProcess) { // Check if process is currently running/active in cores
                             // We explicitly check IsFinished() again inside the loop for robustness
                             // although GetProcessByName should ideally not return finished processes.
-                            if (targetProcess -> IsFinished()) { // This check becomes more critical if GetProcessByName ever returns a finished process
+                            if (targetProcess->IsFinished()) { // This check becomes more critical if GetProcessByName ever returns a finished process
                                 printColor("Screen '" + processName + "' has finished execution.\n", YELLOW);
                             }
                             else {
-                                targetProcess -> screen();
+                                targetProcess->screen();
                                 // Initial display of the process screen
                                 /*
                                 system("cls");
@@ -402,8 +404,25 @@ int main() {
                 istringstream iss(command);
                 string cmd, flag, processName, memSizeStr, instructionBlock;
 
-                iss >> cmd >> flag >> processName >> memSizeStr;
-                getline(iss, instructionBlock);
+                iss >> cmd >> flag >> processName;
+
+                // Check if next token is a number (memory size) or starts with quote (instructions)
+                string nextToken;
+                iss >> nextToken;
+
+                if (nextToken[0] == '"') {
+                    // No memory size provided, use default
+                    memSizeStr = "4096"; // Default memory size
+                    instructionBlock = nextToken;
+                    string restOfLine;
+                    getline(iss, restOfLine);
+                    instructionBlock += restOfLine;
+                }
+                else {
+                    // Memory size provided
+                    memSizeStr = nextToken;
+                    getline(iss, instructionBlock);
+                }
 
                 size_t firstQuote = instructionBlock.find('"');
                 size_t lastQuote = instructionBlock.rfind('"');
@@ -418,9 +437,9 @@ int main() {
                 vector<string> instructions;
                 stringstream ss(rawInstructions);
                 string item;
-                
+
                 while (getline(ss, item, ';')) {
-                    item.erase(0, item.find_first_not_of(" \t")); 
+                    item.erase(0, item.find_first_not_of(" \t"));
                     item.erase(item.find_last_not_of(" \t") + 1);
 
                     if (!item.empty()) {
@@ -429,23 +448,29 @@ int main() {
                 }
 
                 if (instructions.size() < 1 || instructions.size() > 50) {
-                    printColor("invalid command: Instruction count must be between 1 and 50.\n", RED);
-                    return 0;
+                    printColor("Invalid command: Instruction count must be between 1 and 50.\n", RED);
+                    continue;
                 }
 
                 int processMem = stoi(memSizeStr);
 
                 if (globalScheduler) {
+                    Screen* existing = globalScheduler->GetProcessByName(processName);
+                    if (existing) {
+                        printColor("Process '" + processName + "' already exists.\n", RED);
+                        continue;
+                    }
+
                     globalScheduler->CreateProcessWithInstructions(processName, processMem, instructions);
                     Screen* scr = globalScheduler->GetProcessByName(processName);
-                    if (scr) scr->screen();
+                    if (scr) {
+                        printColor("Process '" + processName + "' created successfully.\n", GREEN);
+                        scr->screen();
+                    }
                 }
                 else {
                     printColor("Scheduler not initialized.\n", RED);
                 }
-            }
-            else {
-                printColor("Screen command not recognized. Usage: screen -s <name>, screen -r <name>, or screen -ls\n", RED);
             }
         }
         else if (command == "scheduler-start") { // Formerly scheduler-test

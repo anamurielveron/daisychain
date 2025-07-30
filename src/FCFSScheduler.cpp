@@ -11,15 +11,24 @@ string padNumberFCFS(int number, int width) {
 }
 
 
-FCFSScheduler::FCFSScheduler(int num_cores, unsigned int min_ins, unsigned int max_ins, int batch_freq, int delay_exec)
+FCFSScheduler::FCFSScheduler(int num_cores, unsigned int min_ins, unsigned int max_ins, int batch_freq, int delay_exec, Memory* mem)
     : running(false), currentPidInc(1), cpuCycles(0), numCores(num_cores),
     minInstructions(min_ins), maxInstructions(max_ins), batchProcessFrequency(batch_freq),
     delayPerExecution(delay_exec) {
-    cores.resize(numCores); // Resize with default-constructed unique_ptrs (nullptr)
+    cores.resize(numCores);
+
+    // Use provided memory or create new one
+    if (mem) {
+        memory = mem;
+    }
+    else {
+        memory = new Memory(16384, 4096); // Use config values
+    }
 }
 
 FCFSScheduler::~FCFSScheduler() {
     Stop();
+    delete memory; // Clean up memory
 }
 
 void FCFSScheduler::Start() {
@@ -216,13 +225,51 @@ void FCFSScheduler::SetBatchEnabled(bool enabled) {
 void FCFSScheduler::CreateProcessWithInstructions(const string& processName, int processSize, const vector<string>& instructionList) {
     lock_guard<mutex> lock(schedulerMutex);
 
-    if (instructionList.size() < 1 || instructionList.size() > 50) {
+    if (instructionList.empty() || instructionList.size() > 50) {
         printColor("Invalid command: Instruction count must be between 1 and 50.\n", RED);
         return;
     }
 
-    unique_ptr<Screen> newProcess = make_unique<Screen>(processName, processSize, instructionList);
+    // Check if process already exists
+    for (int i = 0; i < numCores; i++) {
+        if (cores[i] && cores[i]->GetName() == processName) {
+            printColor("Process '" + processName + "' already exists.\n", RED);
+            return;
+        }
+    }
 
+    // Check ready queue as well
+    queue<unique_ptr<Screen>> tempReadyQueue;
+    bool processExists = false;
+    while (!readyQueue.empty()) {
+        if (readyQueue.front()->GetName() == processName) {
+            processExists = true;
+        }
+        tempReadyQueue.push(std::move(readyQueue.front()));
+        readyQueue.pop();
+    }
+    while (!tempReadyQueue.empty()) {
+        readyQueue.push(std::move(tempReadyQueue.front()));
+        tempReadyQueue.pop();
+    }
+
+    if (processExists) {
+        printColor("Process '" + processName + "' already exists in ready queue.\n", RED);
+        return;
+    }
+
+    // Create the process with proper constructor parameters
+    // Assuming Screen constructor takes: (pid, totalInstructions, arrivalTime, name, customInstructions, memory)
+    unique_ptr<Screen> newProcess = make_unique<Screen>(
+        processName,                    // Process name
+        this->memory,                   // Memory object
+        instructionList                 // Custom instructions
+    );
+    newProcess->SetPID(currentPidInc.load());
+
+    currentPidInc++; // Don't forget to increment PID counter
+
+    // Try to assign to an available core
     bool assigned = false;
     for (int i = 0; i < numCores; i++) {
         if (!cores[i]) {
@@ -233,11 +280,11 @@ void FCFSScheduler::CreateProcessWithInstructions(const string& processName, int
         }
     }
 
+    // If no core available, add to ready queue
     if (!assigned) {
         readyQueue.push(std::move(newProcess));
     }
 }
-
 
 
 

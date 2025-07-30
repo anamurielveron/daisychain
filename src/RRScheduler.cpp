@@ -285,7 +285,12 @@ void RRScheduler::SetBatchEnabled(bool enabled) {
 void RRScheduler::CreateProcessWithInstructions(const string& processName, int processSize, const vector<string>& instructions) {
     lock_guard<mutex> lock(schedulerMutex);
 
-    auto newProcess = make_unique<Screen>(processName, processSize, instructions);
+    if (instructions.size() < 1 || instructions.size() > 50) {
+        printColor("Invalid command: Instruction count must be between 1 and 50.\n", RED);
+        return;
+    }
+
+    auto newProcess = make_unique<Screen>(processName, processSize, instructions, this->memory);
 
     for (auto& core : cores) {
         if (core.isEmpty) {

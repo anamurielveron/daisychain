@@ -10,8 +10,10 @@
 Memory::Memory(int mem_limit, int frame_mem)
 	: max_mem(mem_limit), mem_per_frame(frame_mem) {
 	num_of_frames = max_mem / mem_per_frame;
-	mem_frames.resize(num_of_frames);
 
+    memoryData.resize(max_mem, 0);
+
+	mem_frames.resize(num_of_frames);
 	int address = mem_per_frame;
 
 	for (int i = 0; i < num_of_frames; i++) {

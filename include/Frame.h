@@ -1,7 +1,6 @@
 #include <iostream>
 #include <string>
 
-#include "Screen.h"
 
 using namespace std;
 
@@ -9,12 +8,12 @@ using namespace std;
 #define FRAME_H
 
 class Frame {
-	int frame_mem;
+	int frame_mem = 0;
 	int address = 0;
 	string process;
 	bool is_occupied;
-	int lower_bound;
-	int upper_bound;
+	int lower_bound = 0;
+	int upper_bound = 0;
 	std::string contents;
 
 public:
