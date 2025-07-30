@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #include "utils.h"
 #include "Memory.h" 
@@ -19,6 +20,10 @@ private:
         string varName = "empty";
         int value = 0;
     };
+    struct SymbolInfo {
+        int value;
+        int memoryAddress; // Address in memory
+    };
     int id;
     unsigned int totalInstructions;
     unsigned int executedInstructions;
@@ -30,6 +35,7 @@ private:
     string printMsg;
     Variables vars[100];
     int nestedLoopNum = 0;
+    unordered_map<string, SymbolInfo> symbolTable;
 
     vector<string> instructions; // Holds the list of instructions for the process
     Memory* memory;
@@ -94,6 +100,10 @@ public:
     void SetPID(int newId);
 
 
+    void DeclareVariable(const std::string& name, int value, int address);
+    bool GetVariable(const std::string& name, int& value, int& address) const;
+    bool READ(const std::string& var, uint32_t memory_address);
+    bool WRITE(uint32_t memory_address, uint16_t value);
 };
 
 #endif // SCREEN_H

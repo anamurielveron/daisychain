@@ -7,6 +7,8 @@
 #include <list>
 #include <windows.h>
 #include "Screen.h"
+#include <unordered_map>
+#include <mutex>
 
 #include "Memory.h"
 #include <atomic>
@@ -14,6 +16,11 @@
 
 
 using namespace std;
+
+extern std::unordered_map<uint32_t, uint16_t> globalMemory;
+extern std::mutex globalMemoryMutex;
+extern const uint32_t MEMORY_MIN_ADDRESS;
+extern const uint32_t MEMORY_MAX_ADDRESS;
 
 void Screen::screen() {
 	//Display session name and time created
@@ -48,8 +55,8 @@ void Screen::screen() {
 
 void Screen::run() {
 	while (executedInstructions < totalInstructions) {
-		RunInstructions(rand() % 6);
-	}
+		RunInstructions(rand() % 7);
+s	}
 }
 
 void Screen::RunInstructions(int instructionToRun) {
@@ -473,7 +480,64 @@ void Screen::SetPID(int newId) {
 	id = newId;
 }
 
+void Screen::DeclareVariable(const std::string& name, int value, int address) {
+    if (symbolTable.size() >= 32) {
+        // Symbol table full, ignore new declarations
+        printLogs.push_back("Symbol table full. Variable '" + name + "' not declared.");
+        return;
+    }
+    // Clamp value to uint16_t
+    uint16_t clamped = static_cast<uint16_t>(std::max(0, std::min(value, 0xFFFF)));
+    symbolTable[name] = { clamped, address };
+}
 
+bool Screen::GetVariable(const std::string& name, int& value, int& address) const {
+    auto it = symbolTable.find(name);
+    if (it != symbolTable.end()) {
+        value = it->second.value;
+        address = it->second.memoryAddress;
+        return true;
+    }
+    return false;
+}
+
+bool Screen::READ(const std::string& var, uint32_t memory_address) {
+    if (memory_address < MEMORY_MIN_ADDRESS || memory_address > MEMORY_MAX_ADDRESS) {
+        printLogs.push_back("Access violation at address 0x" + to_string(memory_address) + ". Process terminated.");
+        finished.store(true);
+        return false;
+    }
+    uint16_t value = 0;
+    {
+        std::lock_guard<std::mutex> lock(globalMemoryMutex);
+        auto it = globalMemory.find(memory_address);
+        if (it != globalMemory.end()) value = it->second;
+    }
+    DeclareVariable(var, value, memory_address);
+    printLogs.push_back("READ " + var + " from 0x" + to_string(memory_address) + " = " + to_string(value));
+    return true;
+}
+
+bool Screen::WRITE(uint32_t memory_address, uint16_t value) {
+    if (memory_address < MEMORY_MIN_ADDRESS || memory_address > MEMORY_MAX_ADDRESS) {
+        printLogs.push_back("Access violation at address 0x" + to_string(memory_address) + ". Process terminated.");
+        finished.store(true);
+        return false;
+    }
+    value = std::min<uint16_t>(value, 0xFFFF);
+    {
+        std::lock_guard<std::mutex> lock(globalMemoryMutex);
+        globalMemory[memory_address] = value;
+    }
+    printLogs.push_back("WRITE " + to_string(value) + " to 0x" + to_string(memory_address));
+    return true;
+}
+
+// READ my_var 0x1000
+process->READ("my_var", 0x1000);
+
+// WRITE 0x2000 42
+process->WRITE(0x2000, 42);
 
 int Screen::GetPID() const { return id; }
 string Screen::GetName() const { return name; }
