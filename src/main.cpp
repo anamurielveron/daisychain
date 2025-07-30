@@ -389,6 +389,52 @@ int main() {
                     printColor("Scheduler not initialized. No active processes to list.\n", CYAN);
                 }
             }
+            else if (command.find("-c") != string::npos) {
+                istringstream iss(command);
+                string cmd, flag, processName, memSizeStr, instructionBlock;
+
+                iss >> cmd >> flag >> processName >> memSizeStr;
+                getline(iss, instructionBlock);
+
+                size_t firstQuote = instructionBlock.find('"');
+                size_t lastQuote = instructionBlock.find('"');
+
+                if (firstQuote == string::npos || lastQuote == string::npos || firstQuote == lastQuote) {
+                    printColor("Invalid command: Missing or malformed instruction string.\n", RED);
+                    return 0;
+                }
+
+                string rawInstructions = instructionBlock.substr(firstQuote + 1, lastQuote - firstQuote - 1);
+
+                vector<string> instructions;
+                stringstream ss(rawInstructions);
+                string item;
+                
+                while (getline(ss, item, ';')) {
+                    item.erase(0, item.find_first_not_of(" \t")); 
+                    item.erase(item.find_last_not_of(" \t") + 1);
+
+                    if (!item.empty()) {
+                        instructions.push_back(item);
+                    }
+                }
+
+                if (instructions.size() < 1 || instructions.size() > 50) {
+                    printColor("invalid command: Instruction count must be between 1 and 50.\n", RED);
+                    return 0;
+                }
+
+                int processMem = stoi(memSizeStr);
+
+                if (globalScheduler) {
+                    globalScheduler->CreateProcessWithInstructions(processName, processMem, instructions);
+                    Screen* scr = globalScheduler->GetProcessByName(processName);
+                    if (scr) scr->screen();
+                }
+                else {
+                    printColor("Scheduler not initialized.\n", RED);
+                }
+            }
             else {
                 printColor("Screen command not recognized. Usage: screen -s <name>, screen -r <name>, or screen -ls\n", RED);
             }

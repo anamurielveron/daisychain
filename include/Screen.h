@@ -28,10 +28,14 @@ private:
     Variables vars[100];
     int nestedLoopNum = 0;
 
+    vector<string> instructions; // Holds the list of instructions for the process
+
 public:
     Screen(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName)
         : id(newId), totalInstructions(newTotalInstructions), arrivalTimestamp(timeArrived),
         executedInstructions(0), coreAssigned(-1), name(processName), finished(false) {}
+
+    Screen(const string& processName, int memorySize, const vector<string>& instructions);
 
     // Delete copy constructor and copy assignment operator for std::atomic member
     Screen(const Screen&) = delete;
@@ -99,6 +103,7 @@ public:
     vector<string> GetPrintLogs() const;
     bool IsFinished() const;
     void SetFinished(bool status);
+
 };
 
 #endif // SCREEN_H

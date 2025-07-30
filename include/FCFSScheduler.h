@@ -54,6 +54,8 @@ public:
     Screen* GetProcessByName(const string& name) override;
 
     void SetBatchEnabled(bool enabled) override;
+
+    void CreateProcessWithInstructions(const string& processName, int processSize, const string& instructions);
 };
 
 #endif // FCFSSCHEDULER_H

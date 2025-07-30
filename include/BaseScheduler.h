@@ -24,6 +24,9 @@ public:
     virtual Screen* GetProcessByName(const string& name) = 0;
 
     virtual void SetBatchEnabled(bool enabled) = 0; // Dummy generation
+
+    virtual void CreateProcessWithInstructions(const string& name, int memSize, const vector<string>& instructions) = 0; // virtual function
+
 };
 
 #endif // BASESCHEDULER

@@ -253,6 +253,23 @@ void Screen::AddPrintLog(const string& message, int coreNum) {
 }
 */
 
+Screen::Screen(const string& processName, int memorySize, const vector<string>& instructions)
+	: id(-1),
+	totalInstructions(instructions.size()),
+	executedInstructions(0),
+	arrivalTimestamp(getCurrentTimestamp()),
+	coreAssigned(-1),
+	name(processName),
+	finished(false),
+	instructions(instructions) // Initialize the instruction list
+{
+	for (int i = 0; i < memorySize && i < 100; ++i) {
+		vars[i].varName = "empty";
+		vars[i].value = 0;
+	}
+}
+
+
 
 
 int Screen::GetPID() const { return id; }
