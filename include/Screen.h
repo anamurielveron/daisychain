@@ -34,7 +34,7 @@ public:
     Screen(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName)
         : id(newId), totalInstructions(newTotalInstructions), arrivalTimestamp(timeArrived),
         executedInstructions(0), coreAssigned(-1), name(processName), finished(false) {}
-
+    
     Screen(const string& processName, int memorySize, const vector<string>& instructions);
 
     // Delete copy constructor and copy assignment operator for std::atomic member

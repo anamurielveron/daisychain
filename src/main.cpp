@@ -397,11 +397,11 @@ int main() {
                 getline(iss, instructionBlock);
 
                 size_t firstQuote = instructionBlock.find('"');
-                size_t lastQuote = instructionBlock.find('"');
+                size_t lastQuote = instructionBlock.rfind('"');
 
                 if (firstQuote == string::npos || lastQuote == string::npos || firstQuote == lastQuote) {
                     printColor("Invalid command: Missing or malformed instruction string.\n", RED);
-                    return 0;
+                    continue;
                 }
 
                 string rawInstructions = instructionBlock.substr(firstQuote + 1, lastQuote - firstQuote - 1);

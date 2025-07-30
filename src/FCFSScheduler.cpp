@@ -213,30 +213,16 @@ void FCFSScheduler::SetBatchEnabled(bool enabled) {
     enableBatchFlag.store(enabled);
 }
 
-void FCFSScheduler::CreateProcessWithInstructions(const string& processName, int processSize, const string& instructions) {
+void FCFSScheduler::CreateProcessWithInstructions(const string& processName, int processSize, const vector<string>& instructionList) {
     lock_guard<mutex> lock(schedulerMutex);
 
-    // Split the instructions by semicolon
-    vector<string> instructionList;
-    istringstream iss(instructions);
-    string instruction;
-
-    while (getline(iss, instruction, ';')) {
-        if (!instruction.empty()) {
-            instructionList.push_back(trim(instruction)); // trim is from utils.h
-        }
-    }
-
-    // Instruction count check
     if (instructionList.size() < 1 || instructionList.size() > 50) {
         printColor("Invalid command: Instruction count must be between 1 and 50.\n", RED);
         return;
     }
 
-    // Create the new process
     unique_ptr<Screen> newProcess = make_unique<Screen>(processName, processSize, instructionList);
 
-    // Assign to a core if one is available
     bool assigned = false;
     for (int i = 0; i < numCores; i++) {
         if (!cores[i]) {
@@ -247,11 +233,11 @@ void FCFSScheduler::CreateProcessWithInstructions(const string& processName, int
         }
     }
 
-    // If no core is available, push to ready queue
     if (!assigned) {
         readyQueue.push(std::move(newProcess));
     }
 }
+
 
 
 

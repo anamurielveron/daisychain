@@ -237,3 +237,21 @@ Screen* RRScheduler::GetProcessByName(const string& name) {
 void RRScheduler::SetBatchEnabled(bool enabled) {
     batchProcessFrequency = enabled ? 1 : 0;
 }
+
+void RRScheduler::CreateProcessWithInstructions(const string& processName, int processSize, const vector<string>& instructions) {
+    lock_guard<mutex> lock(schedulerMutex);
+
+    auto newProcess = make_unique<Screen>(processName, processSize, instructions);
+
+    for (auto& core : cores) {
+        if (core.isEmpty) {
+            core.proc = std::move(newProcess);
+            core.qRemaining = quantum;
+            core.isEmpty = false;
+            return;
+        }
+    }
+
+    readyQueue.push(std::move(newProcess));
+}
+
