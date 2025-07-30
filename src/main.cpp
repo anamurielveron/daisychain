@@ -268,7 +268,16 @@ int main() {
         }
         else if (command.find("screen") == 0) { // Command starts with "screen"
             if (command.find("-s") != string::npos) { // Create new screen/process
-                string processName = command.substr(command.find("-s") + 3); // Get name after "-s "
+
+                istringstream iss(command);
+                string cmd, flag, processName;
+                iss >> cmd >> flag >> processName;
+
+                if (processName.empty()) {
+                    printColor("Error: screen name missing. Usage: screen -s <name>\n", RED);
+                    continue;
+                }
+
                 if (!processName.empty()) {
                     if (globalScheduler) {
                         Screen* existingProcess = globalScheduler->GetProcessByName(processName); // Checks running processes
