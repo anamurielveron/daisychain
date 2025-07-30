@@ -226,13 +226,57 @@ bool RRScheduler::IsRunning() {
 
 Screen* RRScheduler::GetProcessByName(const string& name) {
     lock_guard<mutex> lock(schedulerMutex);
+
+    // Check cores
     for (int i = 0; i < numCores; ++i) {
-        if (!cores[i].isEmpty && cores[i].proc && cores[i].proc->GetName() == name && !cores[i].proc->IsFinished()) {
-            return cores[i].proc.get(); // Return raw pointer
+        if (cores[i].proc && cores[i].proc->GetName() == name && !cores[i].proc->IsFinished()) {
+            return cores[i].proc.get();
         }
     }
-    return nullptr; // Not found in running cores
+
+    // Check ready queue
+    queue<unique_ptr<Screen>> tempQueue;
+    Screen* found = nullptr;
+    while (!readyQueue.empty()) {
+        auto proc = std::move(readyQueue.front());
+        readyQueue.pop();
+
+        if (proc->GetName() == name && !proc->IsFinished()) {
+            found = proc.get();
+        }
+
+        tempQueue.push(std::move(proc));
+    }
+    // Restore readyQueue
+    while (!tempQueue.empty()) {
+        readyQueue.push(std::move(tempQueue.front()));
+        tempQueue.pop();
+    }
+
+    if (found) return found;
+
+    // Optionally check finished processes
+    queue<unique_ptr<Screen>> tempDoneQueue;
+    while (!doneQueue.empty()) {
+        auto proc = std::move(doneQueue.front());
+        doneQueue.pop();
+
+        if (proc->GetName() == name) {
+            found = proc.get();  // Even if it's finished, we can still return it
+        }
+
+        tempDoneQueue.push(std::move(proc));
+    }
+    while (!tempDoneQueue.empty()) {
+        doneQueue.push(std::move(tempDoneQueue.front()));
+        tempDoneQueue.pop();
+    }
+
+    return found;
 }
+
+
+
 
 void RRScheduler::SetBatchEnabled(bool enabled) {
     batchProcessFrequency = enabled ? 1 : 0;
