@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #include "utils.h"
 
@@ -16,6 +17,10 @@ private:
         string varName = "empty";
         int value = 0;
     };
+    struct SymbolInfo {
+        int value;
+        int memoryAddress; // Address in memory
+    };
     int id;
     unsigned int totalInstructions;
     unsigned int executedInstructions;
@@ -27,6 +32,7 @@ private:
     string printMsg;
     Variables vars[100];
     int nestedLoopNum = 0;
+    unordered_map<string, SymbolInfo> symbolTable;
 
 public:
     Screen(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName)
@@ -99,6 +105,10 @@ public:
     vector<string> GetPrintLogs() const;
     bool IsFinished() const;
     void SetFinished(bool status);
+    void DeclareVariable(const std::string& name, int value, int address);
+    bool GetVariable(const std::string& name, int& value, int& address) const;
+    bool READ(const std::string& var, uint32_t memory_address);
+    bool WRITE(uint32_t memory_address, uint16_t value);
 };
 
 #endif // SCREEN_H

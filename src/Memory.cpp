@@ -5,7 +5,14 @@
 #include <fstream>
 #include "utils.h" 
 #include "Frame.h"   
+#include <unordered_map>
+#include <mutex>
+#include <cstdint>
 
+std::unordered_map<uint32_t, uint16_t> globalMemory;
+std::mutex globalMemoryMutex;
+const uint32_t MEMORY_MIN_ADDRESS = 0x1000;
+const uint32_t MEMORY_MAX_ADDRESS = 0xFFFF; // Example: 64KB address space
 
 Memory::Memory(int mem_limit, int frame_mem)
 	: max_mem(mem_limit), mem_per_frame(frame_mem) {
