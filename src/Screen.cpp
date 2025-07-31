@@ -5,14 +5,15 @@
 #include <iomanip>
 #include <sstream>
 #include <list>
+#define NOMINMAX
 #include <windows.h>
+#include <algorithm>
 #include "Screen.h"
 #include <unordered_map>
 #include <mutex>
 
 #include "Memory.h"
 #include <atomic>
-#include <algorithm>
 
 
 using namespace std;
@@ -56,7 +57,7 @@ void Screen::screen() {
 void Screen::run() {
 	while (executedInstructions < totalInstructions) {
 		RunInstructions(rand() % 7);
-s	}
+	}
 }
 
 void Screen::RunInstructions(int instructionToRun) {
@@ -533,11 +534,13 @@ bool Screen::WRITE(uint32_t memory_address, uint16_t value) {
     return true;
 }
 
-// READ my_var 0x1000
-process->READ("my_var", 0x1000);
+void testReadWrite(Screen* process) {
+	// READ my_var 0x1000
+	process->READ("my_var", 0x1000);
 
-// WRITE 0x2000 42
-process->WRITE(0x2000, 42);
+	// WRITE 0x2000 42
+	process->WRITE(0x2000, 42);
+}
 
 int Screen::GetPID() const { return id; }
 string Screen::GetName() const { return name; }

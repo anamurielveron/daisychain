@@ -10,6 +10,10 @@
 
 using namespace std;
 
+extern const uint32_t MEMORY_MIN_ADDRESS;
+extern const uint32_t MEMORY_MAX_ADDRESS;
+
+
 class Memory {
 private:
     int max_mem;
