@@ -66,6 +66,82 @@ void Memory::FF_DetachProcessFromMemory(string process) {
 	}
 }
 
+void Memory::LRU_AssignProcessToFrame(string process_index) {
+	int i = 0;
+	Table page_to_assign;
+	bool isAssigned = false;
+	bool process_found = false;
+	int j = 0;
+
+	for (Table page : page_table) {
+		if (page.process == process_index) {
+			page_to_assign = page;
+			break;
+		}
+		j++;
+	}
+
+	while (i < num_of_frames) {
+		if (!mem_frames[i].CheckIsOccupied()) {
+			mem_frames[i].AssignProcess(page_to_assign.process, &page_to_assign.pages[page_to_assign.current_Page]);
+			page_to_assign.pages[page_to_assign.current_Page].SetCurrentFrame(i);
+			isAssigned = true;
+			page_table[j].assigned_address = mem_frames[i].GetFrameAddress();
+			break;
+		}
+
+		i++;
+	}
+
+	if (!isAssigned) {
+		int less_used_process = 0;
+		int i = 1;
+
+		while (i < num_of_frames) {
+			if (mem_frames[less_used_process].ReturnPageTally() > mem_frames[i].ReturnPageTally()) {
+				less_used_process = i;
+			}
+			i++;
+		}
+
+		mem_frames[less_used_process].AssignProcess(page_to_assign.process, &page_to_assign.pages[page_to_assign.current_Page]);
+		page_to_assign.pages[page_to_assign.current_Page].SetCurrentFrame(less_used_process);
+		page_table[j].assigned_address = mem_frames[less_used_process].GetFrameAddress();
+	}
+}
+
+void Memory::LRU_DetachProcessFromMemory(string process) {
+	
+}
+
+void Memory::AddNewProcess(string name, vector<string> instructions, int process_size) {
+	Table newRow;
+	int number_of_pages = process_size / mem_per_frame;
+	int instructions_per_page = instructions.size() / number_of_pages;
+	newRow.process = name;
+	vector<string> temp;
+	int i = 0;
+	int j = 0;
+	while (i < number_of_pages) {
+		while (j < instructions.size()) {
+			if (j % instructions_per_page > 0) {
+				temp.push_back(instructions[j]);
+			}
+			else if (j % instructions_per_page == 0 || j == instructions.size() - 1)
+			{
+				break;
+			}
+			j++;
+		}
+
+		Page temp_Page = Page(name, temp, instructions_per_page, mem_per_frame);
+
+		newRow.pages.push_back(temp_Page);
+
+		temp.clear();
+	}
+}
+
 void Memory::GenerateMemoryReport(int quantumCycle) {
     std::ostringstream filename;
     filename << "memory_stamp_" << std::setw(2) << std::setfill('0') << quantumCycle << ".txt";
@@ -111,4 +187,35 @@ void Memory::GenerateMemoryReport(int quantumCycle) {
     file << "----start---- = 0\n";
     file.close();
 }
-  
+
+void Memory::SetNextPageInProcess(string process) {
+	int j = 0;
+
+	for (Table page : page_table) {
+		if (page.process == process) {
+			break;
+		}
+		j++;
+	}
+
+	if (page_table[j].current_Page < page_table[j].pages.size()) {
+		if (page_table[j].pages[page_table[j].current_Page].IsPageInstructionsDone()) {
+			page_table[j].current_Page++;
+		}
+	}
+}
+
+void Memory::MoveToNextInstruction(string process) {
+	int j = 0;
+
+	for (Table page : page_table) {
+		if (page.process == process) {
+			break;
+		}
+		j++;
+	}
+
+	if (page_table[j].assigned_address > 0) {
+		page_table[j].pages[page_table[j].current_Page].SetCurrentInstruction();
+	}
+}

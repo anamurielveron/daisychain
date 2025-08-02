@@ -6,8 +6,9 @@ void Frame::newFrame(int frameMem, int frame_add)
 	address = frame_add;
 }
 
-void Frame::AssignProcess(string process_name) {
-	process = process_name;
+void Frame::AssignProcess(string process_name, Page* page) {
+	current_process = process_name;
+	assigned_Page = page;
 	is_occupied = true;
 }
 
@@ -17,9 +18,17 @@ bool Frame::CheckIsOccupied() {
 
 void Frame::EmptyFrame() {
 	is_occupied = false;
-	process;
+	current_process = "";
 }
 
 string Frame::CheckContents() {
-	return process;
+	return current_process;
+}
+
+int Frame::GetFrameAddress() {
+	return address;
+}
+
+int Frame::ReturnPageTally() {
+	return assigned_Page->GetPageTally();
 }
