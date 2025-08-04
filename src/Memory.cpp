@@ -169,4 +169,36 @@ void Memory::GenerateMemoryReport(int quantumCycle) {
     file << "----start---- = 0\n";
     file.close();
 }
+
+void Memory::SetNextPageInProcess(string process) {
+	int j = 0;
+
+	for (Table page : page_table) {
+		if (page.process == process) {
+			break;
+		}
+		j++;
+	}
+
+	if (page_table[j].current_Page < page_table[j].pages.size()) {
+		if (page_table[j].pages[page_table[j].current_Page].IsPageInstructionsDone()) {
+			page_table[j].current_Page++;
+		}
+	}
+}
+
+void Memory::MoveToNextInstruction(string process) {
+	int j = 0;
+
+	for (Table page : page_table) {
+		if (page.process == process) {
+			break;
+		}
+		j++;
+	}
+
+	if (page_table[j].assigned_address > 0) {
+		page_table[j].pages[page_table[j].current_Page].SetCurrentInstruction();
+	}
+}
   
