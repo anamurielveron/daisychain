@@ -16,11 +16,10 @@ class Frame {
 	string current_process;
 	string process;
 	bool is_occupied;
+	int lower_bound;
+	int upper_bound;
 	string current_instruction;
 	Page* assigned_Page;
-	int lower_bound = 0;
-	int upper_bound = 0;
-	std::string contents;
 
 
 public:
@@ -29,6 +28,7 @@ public:
 	bool CheckIsOccupied();
 	void EmptyFrame();
 	string CheckContents();
+	int ReturnPageTally();
 	int GetFrameAddress() const;
 };
 

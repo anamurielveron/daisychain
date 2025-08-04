@@ -12,7 +12,6 @@ using namespace std;
 class Page {
 	string process_name;
 	vector<string> instruction_list;
-
 	int page_size;
 	int current_instruction;
 	int current_frame;

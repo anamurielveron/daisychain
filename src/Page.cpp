@@ -1,3 +1,19 @@
+#include "Page.h"
+#include <set>
+#include <iomanip>
+#include <sstream>
+#include <fstream>
+#include "utils.h"
+
+Page::Page(string name_assign, vector<string> list, int list_size, int mem_page_size)
+	: process_name(name_assign), instruction_list(list), page_size(mem_page_size) {
+	current_instruction = 0;
+	current_frame = -1;
+}
+
+void Page::SetCurrentInstruction() {
+	if (current_instruction < instruction_list.size()) {
+		current_instruction++;
 	}
 }
 

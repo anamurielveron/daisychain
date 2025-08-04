@@ -27,3 +27,7 @@ string Frame::CheckContents() {
 int Frame::ReturnPageTally() {
 	return assigned_Page->GetPageTally();
 }
+
+int Frame::GetFrameAddress() const {
+	return address;
+}
