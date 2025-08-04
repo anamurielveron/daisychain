@@ -30,6 +30,7 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="config.txt" />
+    <Text Include="csopesy-backing-store.txt" />
     <Text Include="data\banner.txt" />
   </ItemGroup>
   <ItemGroup>

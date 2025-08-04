@@ -43,6 +43,7 @@ public:
 	void GenerateMemoryReport(int quantumCycle);
 	void SetNextPageInProcess(string process);
 	void MoveToNextInstruction(string process);
+	void CheckBackingStore(string process);
 	int Read(int address) const {
         if (address < 0 || address >= max_mem)
             throw std::out_of_range("Memory read out of bounds");
