@@ -23,13 +23,17 @@ private:
     std::vector<int> memoryData; // actual memory to store int values
 
 public:
-    Memory(int mem_limit, int frame_mem);
-
-    void FF_AssignProcessToFrame(string process, int processSize);
-    void FF_DetachProcessFromMemory(string process);
-    void GenerateMemoryReport(int quantumCycle);
-
-    int Read(int address) const {
+	Memory(int mem_limit, int frame_mem);
+	void FF_AssignProcessToFrame(string process, int processSize);
+	void FF_DetachProcessFromMemory(string process);
+	void LRU_AssignProcessToFrame(string process_index);
+	void LRU_DetachProcessFromMemory(string process);
+	void AddNewProcess(string name, vector<string> instructions, int process_size);
+	void GenerateMemoryReport(int quantumCycle);
+	void SetNextPageInProcess(string process);
+	void MoveToNextInstruction(string process);
+	void CheckBackingStore(string process);
+	int Read(int address) const {
         if (address < 0 || address >= max_mem)
             throw std::out_of_range("Memory read out of bounds");
         return memoryData[address];

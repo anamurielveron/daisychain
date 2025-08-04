@@ -40,6 +40,7 @@
   <ItemGroup>
     <Text Include="data\banner.txt" />
     <Text Include="config.txt" />
+    <Text Include="csopesy-backing-store.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\utils.h">
