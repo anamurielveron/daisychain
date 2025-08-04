@@ -2,6 +2,7 @@ using namespace std;
 
 #include "FCFSScheduler.h"
 #include "utils.h"
+#include "Memory.h"
 
 string padNumberFCFS(int number, int width) {
     string numStr = to_string(number);
