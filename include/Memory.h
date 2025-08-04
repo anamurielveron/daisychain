@@ -3,13 +3,10 @@
 
 #include <iostream>
 #include <string>
-#include <stack>
-
 #include <vector>
 #include <stdexcept>
 
 #include "Frame.h"
-#include "Page.h"
 
 using namespace std;
 
@@ -19,19 +16,11 @@ extern const uint32_t MEMORY_MAX_ADDRESS;
 
 class Memory {
 private:
-	struct Table {
-		string process;
-		vector<Page> pages;
-		int assigned_address;
-		int current_Page = 0;;
-	};
-	int max_mem;
-	std::vector<Frame> mem_frames;
-	int num_of_frames;
-	int mem_per_frame;
-	stack<int> free_frames;
-	vector<Table> page_table;
-	std::vector<int> memoryData; // actual memory to store int values
+    int max_mem;
+    int num_of_frames;
+    int mem_per_frame;
+    std::vector<Frame> mem_frames;
+    std::vector<int> memoryData; // actual memory to store int values
 
 public:
 	Memory(int mem_limit, int frame_mem);

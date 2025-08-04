@@ -23,7 +23,6 @@
     <ClCompile Include="src\Frame.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Memory.cpp" />
-    <ClCompile Include="src\Page.cpp" />
     <ClCompile Include="src\Screen.cpp" />
     <ClCompile Include="src\RRScheduler.cpp" />
     <ClCompile Include="src\utils.cpp" />
@@ -37,7 +36,6 @@
     <ClInclude Include="include\BaseScheduler.h" />
     <ClInclude Include="include\FCFSScheduler.h" />
     <ClInclude Include="include\Frame.h" />
-    <ClInclude Include="include\Page.h" />
     <ClInclude Include="include\Memory.h" />
     <ClInclude Include="include\Screen.h" />
     <ClInclude Include="include\RRScheduler.h" />
