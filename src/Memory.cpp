@@ -29,43 +29,6 @@ Memory::Memory(int mem_limit, int frame_mem)
 	}
 }
 
-void Memory::FF_AssignProcessToFrame(string process, int processSize) {
-	int mem_to_alloc = processSize / mem_per_frame;
-
-	int i = 0, j = 0;
-
-	while (i < num_of_frames) {
-		int slotFound = 0;
-		j = i;
-		while (slotFound < mem_to_alloc) {
-			if (mem_frames[j].CheckIsOccupied()) {
-				break;
-			}
-			slotFound++;
-			j++;
-		}
-
-		if (slotFound == mem_to_alloc) {
-			int k = 0;
-			while (k < mem_to_alloc) {
-				mem_frames[i].AssignProcess(process);
-				i++;
-			}
-			break;
-		}
-
-		i++;
-	}
-}
-
-void Memory::FF_DetachProcessFromMemory(string process) {
-	for (int i = 0; i < num_of_frames; i++) {
-		if (process == mem_frames[i].CheckContents()) {
-			mem_frames[i].EmptyFrame();
-		}
-	}
-}
-
 void Memory::LRU_AssignProcessToFrame(string process_index) {
 	int i = 0;
 	Table page_to_assign;
