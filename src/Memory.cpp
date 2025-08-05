@@ -257,4 +257,4 @@ void Memory::MoveToNextInstruction(string process) {
   
 std::vector<Frame> Memory::GetAllFrames() const {
 	return mem_frames;
-}
+} // Get all frames in memory
