@@ -11,6 +11,7 @@
 using namespace std;
 
 void Screen::screen() {
+	clear();
     //Display session name and time created
     printColor("Welcome to " + name + "\n\n", YELLOW);
     printColor("Time created: " + arrivalTimestamp + "\n", YELLOW);
@@ -37,6 +38,26 @@ void Screen::screen() {
     }
     system("cls");
 
+	/*printPlaceHolderConsoles();*/
+
+	while (true) {
+		std::string command;
+		printColor("~> ", CYAN);
+		std::getline(std::cin, command);
+		if (command == "process-smi") {
+			printColor("Screen name: " + name + "\n", CYAN);
+			printColor("ID: " + to_string(id) + "\n", CYAN);
+			printColor("Current instruction line: " + to_string(executedInstructions) + "/" + to_string(totalInstructions) + "\n", CYAN);
+			PrintProcessRunning();
+		}
+		else if (command == "exit") {
+			break;
+		}
+	}
+	system("cls");
+
+	printBanner();
+	printSubtitle();
     printBanner();
     printSubtitle();
 }
