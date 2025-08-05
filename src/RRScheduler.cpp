@@ -160,7 +160,33 @@ void RRScheduler::CreateProcess(bool isBatch, const string& userProvidedName) {
     }
 
     unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
-    unique_ptr<Screen> newProcess = std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName);
+    string timestamp = getCurrentTimestamp();
+
+    // Assign random memory size for dummy processes only
+    int memSize = isBatch ? (rand() % 451 + 50) : 0; // 50�500 KB if batch, else 0
+
+    // Create the Screen (process) with random instructions + memory
+    unique_ptr<Screen> newProcess = std::make_unique<Screen>(
+        currentPidInc, instructions, timestamp, processName, memSize, memory);
+
+    // ? CHECKER: Print process info if batch/dummy
+    if (isBatch) {
+        cout << "\n=== DUMMY PROCESS CREATED ===" << endl;
+        cout << "Process Name : " << processName << endl;
+        cout << "PID          : " << currentPidInc << endl;
+        cout << "Instructions : " << instructions << endl;
+        cout << "Memory Size  : " << memSize << " KB" << endl;
+
+        cout << "--- Instruction List ---" << endl;
+        for (const string& instr : newProcess->GetInstructionVector()) {
+            cout << "  " << instr << endl;
+        }
+
+        cout << "--- Variable List ---" << endl;
+        newProcess->PrintVariables();  // Uses your own PrintVariables() method
+        cout << "===========================\n" << endl;
+    }
+
     currentPidInc++;
 
     bool assigned = false;
