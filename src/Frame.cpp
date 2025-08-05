@@ -9,20 +9,21 @@ void Frame::newFrame(int frameMem, int frame_add)
 void Frame::AssignProcess(string process_name, Page* page) {
 	current_process = process_name;
 	assigned_Page = page;
+	is_occupied = true;
 }
 
-bool Frame::CheckIsOccupied() {
+bool Frame::CheckIsOccupied() const {
 	return is_occupied;
+}
+
+string Frame::CheckContents() const {
+	return current_process;
 }
 
 void Frame::EmptyFrame() {
 	is_occupied = false;
 	current_process = "";
 	assigned_Page = nullptr;
-}
-
-string Frame::CheckContents() {
-	return current_process;
 }
 
 int Frame::ReturnPageTally() {
