@@ -250,6 +250,7 @@ void Screen::ExecuteInstruction(int coreNum) {
 		if (executedInstructions == totalInstructions) {
 			finished.store(true); // Use store for atomic boolean
 		}
+		memory->MoveToNextInstruction(name);
 	}
 }
 
