@@ -279,9 +279,6 @@ Screen* RRScheduler::GetProcessByName(const string& name) {
     return found;
 }
 
-
-
-
 void RRScheduler::SetBatchEnabled(bool enabled) {
     batchProcessFrequency = enabled ? 1 : 0;
 }
@@ -306,5 +303,9 @@ void RRScheduler::CreateProcessWithInstructions(const string& processName, int p
     }
 
     readyQueue.push(std::move(newProcess));
+}
+
+void RRScheduler::DisplayMemoryStats() {
+    memory->GenerateMemoryReport(cpuCycles);
 }
 

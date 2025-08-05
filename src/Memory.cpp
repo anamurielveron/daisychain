@@ -36,7 +36,9 @@ void Memory::LRU_AssignProcessToFrame(string process_index) {
 	bool process_found = false;
 	int j = 0;
 
+	
 	if (page_table.size() > 0) {
+		cout << "Hello World";
 		for (Table page : page_table) {
 			if (page.process == process_index) {
 				page_to_assign = page;
@@ -128,9 +130,9 @@ void Memory::AddNewProcess(string name, vector<string> instructions, int process
 	}
 }
 
-void Memory::GenerateMemoryReport(int quantumCycle) {
+void Memory::GenerateMemoryReport_File(int quantumCycle) {
     std::ostringstream filename;
-    filename << "memory_stamp_" << std::setw(2) << std::setfill('0') << quantumCycle << ".txt";
+    cout << "memory_stamp_" << std::setw(2) << std::setfill('0') << quantumCycle << ".txt";
     std::ofstream file(filename.str());
 
     // Header
@@ -172,6 +174,50 @@ void Memory::GenerateMemoryReport(int quantumCycle) {
 
     file << "----start---- = 0\n";
     file.close();
+}
+
+void Memory::GenerateMemoryReport(int quantumCycle) {
+	
+	//cout << "memory_stamp_" << std::setw(2) << std::setfill('0') << quantumCycle << ".txt";
+
+	// Header
+	cout << "Timestamp: (" << getCurrentTimestamp() << ")\n";
+
+	// Count processes
+	std::set<std::string> uniqueProcesses;
+	for (auto& frame : mem_frames) {
+		if (frame.CheckIsOccupied()) {
+			uniqueProcesses.insert(frame.CheckContents());
+		}
+	}
+	cout << "Number of processes in memory: " << uniqueProcesses.size() << "\n";
+
+	// Calculate external fragmentation
+	int externalFrag = 0;
+	bool insideHole = false;
+	int holeSize = 0;
+
+	for (auto& frame : mem_frames) {
+		if (!frame.CheckIsOccupied()) {
+			externalFrag += mem_per_frame;
+		}
+	}
+	cout << "Total external fragmentation in KB: " << externalFrag << "\n\n";
+
+	// Print ASCII Memory
+	int address = max_mem;
+	cout << "----end---- = " << address << "\n";
+
+	for (int i = num_of_frames - 1; i >= 0; i--) {
+		address -= mem_per_frame;
+		if (mem_frames[i].CheckIsOccupied()) {
+			cout << address + mem_per_frame << "\n";
+			cout << mem_frames[i].CheckContents() << "\n";
+			cout << address << "\n";
+		}
+	}
+
+	cout << "----start---- = 0\n";
 }
 
 void Memory::SetNextPageInProcess(string process) {
