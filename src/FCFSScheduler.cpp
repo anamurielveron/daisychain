@@ -10,7 +10,6 @@ string padNumberFCFS(int number, int width) {
     return string(width - numStr.length(), '0') + numStr;
 }
 
-
 FCFSScheduler::FCFSScheduler(int num_cores, unsigned int min_ins, unsigned int max_ins, int batch_freq, int delay_exec)
     : running(false), currentPidInc(1), cpuCycles(0), numCores(num_cores),
     minInstructions(min_ins), maxInstructions(max_ins), batchProcessFrequency(batch_freq),
@@ -39,21 +38,19 @@ void FCFSScheduler::Stop() {
 }
 
 void FCFSScheduler::SchedulerLoop() {
-    srand(static_cast<unsigned int>(time(0)));
-
     while (running) {
         {
             lock_guard<mutex> lock(schedulerMutex);
 
             cpuCycles++; // Increment CPU cycle
 
-            // Screen cores
+            // Process cores
             for (int i = 0; i < numCores; i++) {
                 if (cores[i] && !cores[i]->IsFinished() && cores[i]->GetTotalInstructions() > 0) {
                     cores[i]->ExecuteInstruction(i);
 
                     if (delayPerExecution > 0) {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExecution)); // Simulate busy-waiting
+                        std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExecution));
                     }
 
                     if (cores[i]->IsFinished()) {
@@ -71,27 +68,7 @@ void FCFSScheduler::SchedulerLoop() {
                 }
             }
 
-            if (batchProcessFrequency > 0 && cpuCycles % batchProcessFrequency == 0) {
-                bool assignedToCore = false;
-                for (int i = 0; i < numCores; ++i) {
-                    if (!cores[i]) {
-                        string processName = "screen_" + padNumberFCFS(currentPidInc, 2);
-                        unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
-                        cores[i] = std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName);
-                        cores[i]->SetCoreValue(i);
-                        currentPidInc++;
-                        assignedToCore = true;
-                        break;
-                    }
-                }
-                if (!assignedToCore) {
-                    string processName = "screen_" + padNumberFCFS(currentPidInc, 2);
-                    unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
-                    readyQueue.push(std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName));
-                    currentPidInc++;
-                }
-            }
-
+            // Assign processes from ready queue to idle cores
             for (int i = 0; i < numCores; ++i) {
                 if (!cores[i] && !readyQueue.empty()) {
                     unique_ptr<Screen> nextProcess = std::move(readyQueue.front());
@@ -110,7 +87,7 @@ void FCFSScheduler::CreateProcess(bool isBatch, const string& userProvidedName) 
 
     string processName;
     if (isBatch) {
-        string processName = "screen_" + padNumberFCFS(currentPidInc, 2);
+        processName = "screen_" + padNumberFCFS(currentPidInc, 2);
     }
     else {
         processName = userProvidedName;
@@ -118,6 +95,49 @@ void FCFSScheduler::CreateProcess(bool isBatch, const string& userProvidedName) 
 
     unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
     unique_ptr<Screen> newProcess = std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName);
+    currentPidInc++;
+
+    bool assigned = false;
+    for (int i = 0; i < numCores; i++) {
+        if (!cores[i]) {
+            cores[i] = std::move(newProcess);
+            cores[i]->SetCoreValue(i);
+            assigned = true;
+            break;
+        }
+    }
+
+    if (!assigned) {
+        readyQueue.push(std::move(newProcess));
+    }
+}
+
+void FCFSScheduler::CreateProcessWithMemory(bool isBatch, const string& processName, int memorySize) {
+    lock_guard<mutex> lock(schedulerMutex);
+
+    unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
+    unique_ptr<Screen> newProcess = std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName, memorySize);
+    currentPidInc++;
+
+    bool assigned = false;
+    for (int i = 0; i < numCores; i++) {
+        if (!cores[i]) {
+            cores[i] = std::move(newProcess);
+            cores[i]->SetCoreValue(i);
+            assigned = true;
+            break;
+        }
+    }
+
+    if (!assigned) {
+        readyQueue.push(std::move(newProcess));
+    }
+}
+
+void FCFSScheduler::CreateProcessWithInstructions(const string& processName, int memorySize, const string& instructions) {
+    lock_guard<mutex> lock(schedulerMutex);
+
+    unique_ptr<Screen> newProcess = std::make_unique<Screen>(currentPidInc, getCurrentTimestamp(), processName, memorySize, instructions);
     currentPidInc++;
 
     bool assigned = false;
@@ -206,5 +226,5 @@ Screen* FCFSScheduler::GetProcessByName(const string& name) {
         tempReadyQueue.pop();
     }
 
-    return nullptr;
+    return foundProcess;
 }

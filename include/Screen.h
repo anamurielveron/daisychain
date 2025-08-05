@@ -1,13 +1,17 @@
+#ifndef SCREEN_H
+#define SCREEN_H
+
 #include <iostream>
 #include <string>
 #include <vector>
+#include <unordered_map>
+#include <atomic>
 
 #include "utils.h"
+class Memory;
+
 
 using namespace std;
-
-#ifndef SCREEN_H
-#define SCREEN_H
 
 class Screen 
 {
@@ -15,6 +19,10 @@ private:
     struct Variables {
         string varName = "empty";
         int value = 0;
+    };
+    struct SymbolInfo {
+        int value;
+        int memoryAddress; // Address in memory
     };
     int id;
     unsigned int totalInstructions;
@@ -27,32 +35,20 @@ private:
     string printMsg;
     Variables vars[100];
     int nestedLoopNum = 0;
+    unordered_map<string, SymbolInfo> symbolTable;
+
+    vector<string> instructions; // Holds the list of instructions for the process
+    Memory* memory;
+    int process_mem_size;
 
 public:
-    Screen(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName)
-        : id(newId), totalInstructions(newTotalInstructions), arrivalTimestamp(timeArrived),
-        executedInstructions(0), coreAssigned(-1), name(processName), finished(false) {}
+    Screen(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName, Memory* mem);
+    Screen(const string& processName, Memory* mem, const vector<string>& instructions);
+    Screen(const string& processName, int memorySize, const vector<string>& instructions, Memory* mem);
 
-    // Delete copy constructor and copy assignment operator for std::atomic member
+
     Screen(const Screen&) = delete;
     Screen& operator=(const Screen&) = delete;
-
-    // Allow move constructor and move assignment operator
-    Screen(Screen&& other) noexcept
-        : id(other.id),
-        totalInstructions(other.totalInstructions),
-        executedInstructions(other.executedInstructions),
-        arrivalTimestamp(std::move(other.arrivalTimestamp)),
-        coreAssigned(other.coreAssigned),
-        printLogs(std::move(other.printLogs)),
-        name(std::move(other.name)),
-        finished(other.finished.load()) { // Atomically load value for move
-        other.id = 0; // Clear original
-        other.totalInstructions = 0;
-        other.executedInstructions = 0;
-        other.coreAssigned = -1;
-        other.finished.store(true); // Mark original as finished/invalidated
-    }
 
     Screen& operator=(Screen&& other) noexcept {
         if (this != &other) {
@@ -74,6 +70,7 @@ public:
         return *this;
     }
 
+    Screen(Screen&& other) noexcept;
     void screen();
     void run();
     void RunInstructions(int instructionToRun);
@@ -99,6 +96,15 @@ public:
     vector<string> GetPrintLogs() const;
     bool IsFinished() const;
     void SetFinished(bool status);
+
+    void ExecuteStringInstruction(const std::string& instr);
+    void SetPID(int newId);
+
+
+    void DeclareVariable(const std::string& name, int value, int address);
+    bool GetVariable(const std::string& name, int& value, int& address) const;
+    bool READ(const std::string& var, uint32_t memory_address);
+    bool WRITE(uint32_t memory_address, uint16_t value);
 };
 
 #endif // SCREEN_H
