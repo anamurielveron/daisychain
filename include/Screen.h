@@ -1,17 +1,17 @@
+#ifndef SCREEN_H
+#define SCREEN_H
+
 #include <iostream>
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <atomic>
 
 #include "utils.h"
-#include "Memory.h" 
-#include <atomic>
+class Memory;
 
 
 using namespace std;
-
-#ifndef SCREEN_H
-#define SCREEN_H
 
 class Screen 
 {
