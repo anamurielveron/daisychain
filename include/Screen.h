@@ -42,7 +42,7 @@ private:
     int process_mem_size;
 
 public:
-    Screen(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName);
+    Screen(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName, Memory* mem);
     Screen(const string& processName, Memory* mem, const vector<string>& instructions);
     Screen(const string& processName, int memorySize, const vector<string>& instructions, Memory* mem);
 
