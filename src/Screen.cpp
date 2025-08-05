@@ -479,6 +479,7 @@ void Screen::ExecuteStringInstruction(const std::string& instr) {
 			}
 		}
 	}
+	memory->MoveToNextInstruction(name);
 }
 
 void Screen::SetPID(int newId) {
