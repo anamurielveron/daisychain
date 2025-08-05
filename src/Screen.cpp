@@ -24,6 +24,7 @@ extern const uint32_t MEMORY_MIN_ADDRESS;
 extern const uint32_t MEMORY_MAX_ADDRESS;
 
 void Screen::screen() {
+	clear();
 	//Display session name and time created
 	printColor("Welcome to " + name + "\n\n", YELLOW);
 	printColor("Time created: " + arrivalTimestamp + "\n", YELLOW);
@@ -32,7 +33,7 @@ void Screen::screen() {
 		ExecuteStringInstruction(instr);
 	}
 
-	printPlaceHolderConsoles();
+	/*printPlaceHolderConsoles();*/
 
 	while (true) {
 		std::string command;
