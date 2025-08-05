@@ -26,6 +26,7 @@ public:
     virtual void SetBatchEnabled(bool enabled) = 0; // Dummy generation
     virtual void CreateProcessWithInstructions(const string& name, int memSize, const vector<string>& instructions) = 0; // virtual function
     virtual void DisplayMemoryStats() = 0;
+    virtual void DisplaySummarizedStats() = 0;
 };
 
 #endif // BASESCHEDULER

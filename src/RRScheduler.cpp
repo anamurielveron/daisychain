@@ -309,3 +309,6 @@ void RRScheduler::DisplayMemoryStats() {
     memory->GenerateMemoryReport(cpuCycles);
 }
 
+void RRScheduler::DisplaySummarizedStats() {
+    memory->GenerateSummarizedReport(cpuCycles);
+}

@@ -18,7 +18,7 @@ Memory::Memory(int mem_limit, int frame_mem)
 	: max_mem(mem_limit), mem_per_frame(frame_mem) {
 	num_of_frames = (max_mem / mem_per_frame)-1;
 
-    memoryData.resize(32, -1);
+    memoryData.resize(32);
 
 	mem_frames.resize(num_of_frames);
 	int address = mem_per_frame;
@@ -212,14 +212,26 @@ void Memory::GenerateMemoryReport(int quantumCycle) {
 
 	for (int i = num_of_frames - 1; i >= 0; i--) {
 		address -= mem_per_frame;
-		if (mem_frames[i].CheckIsOccupied()) {
-			cout << address + mem_per_frame << "\n";
-			cout << mem_frames[i].CheckContents() << "\n";
-			cout << address << "\n";
-		}
+		cout << address + mem_per_frame << "\n";
+		cout << mem_frames[i].CheckContents() << "\n";
+		cout << address << "\n";
 	}
 
 	cout << "----start---- = 0\n";
+}
+
+void Memory::GenerateSummarizedReport(int quantumCycle) {
+	int occupied_frames = 0;
+
+	cout << "Timestamp: (" << getCurrentTimestamp() << ")\n";
+	for (Frame frame : mem_frames) {
+		if (frame.CheckIsOccupied()) {
+			occupied_frames++;
+		}
+	}
+
+	cout << "Frames occupied: " << occupied_frames << "/" << num_of_frames << "\n";
+	cout << "Space in Memory Left: " << (num_of_frames - occupied_frames) * mem_per_frame << "\n";
 }
 
 void Memory::SetNextPageInProcess(string process) {
@@ -270,5 +282,7 @@ bool Memory::VariableDeclaration(int value, string process_Name) {
 	if (isFull) {
 		cout << "Memory is Full" << "\n";
 	}
+
+	return isFull;
 }
   

@@ -485,6 +485,9 @@ int main() {
         else if (command == "vmstat") {
             globalScheduler->DisplayMemoryStats();
         }
+        else if (command == "process-smi") {
+            globalScheduler->DisplaySummarizedStats();
+        }
         else if (command == "clear") {
             clear(); // Explicit clear command
             printSubtitle(); // Re-print subtitle after clear (banner is handled by clear())

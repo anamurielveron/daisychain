@@ -29,7 +29,7 @@ private:
 	};
 	struct Values {
 		string process;
-		int value;
+		int value = -1;
 	};
 	std::vector<Frame> mem_frames;
 	stack<int> free_frames;
@@ -46,6 +46,7 @@ public:
 	void AddNewProcess(string name, vector<string> instructions, int process_size);
 	void GenerateMemoryReport_File(int quantumCycle);
 	void GenerateMemoryReport(int quantumCycle);
+	void GenerateSummarizedReport(int quantumCycle);
 	void SetNextPageInProcess(string process);
 	void MoveToNextInstruction(string process);
 	bool VariableDeclaration(int value, string process_Name);

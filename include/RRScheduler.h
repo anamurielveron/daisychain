@@ -56,6 +56,7 @@ public:
     void SetBatchEnabled(bool enabled) override;
     void CreateProcessWithInstructions(const string& processName, int processSize, const vector<string>& instructions) override;
     void DisplayMemoryStats();
+    void DisplaySummarizedStats();
 };
 
 #endif // RRSCHEDULER_H

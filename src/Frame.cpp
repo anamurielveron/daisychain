@@ -7,6 +7,7 @@ void Frame::newFrame(int frameMem, int frame_add)
 }
 
 void Frame::AssignProcess(string process_name, Page* page) {
+	is_occupied = true;
 	current_process = process_name;
 	assigned_Page = page;
 }

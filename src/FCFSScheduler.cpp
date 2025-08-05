@@ -291,5 +291,9 @@ void FCFSScheduler::DisplayMemoryStats() {
     memory->GenerateMemoryReport(cpuCycles);
 }
 
+void FCFSScheduler::DisplaySummarizedStats() {
+    memory->GenerateSummarizedReport(cpuCycles);
+}
+
 
 
