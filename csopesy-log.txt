@@ -5,10 +5,10 @@ Scheduling Algorithm: Round Robin (Quantum = 4)
 
 --------------------------------
 Running processes:
-screen_02    07/31/2025, 02:27:18 AM    Core: 0    9/100    Quantum remaining: 3
-screen_17    07/31/2025, 02:27:19 AM    Core: 1    0/100    Quantum remaining: 4
+screen_16    08/05/2025, 09:38:14 PM    Core: 0    7/100    Quantum remaining: 1
+screen_46    08/05/2025, 09:38:17 PM    Core: 1    2/100    Quantum remaining: 2
 
-Ready Queue Size: 44
+Ready Queue Size: 134
 
 Finished processes:
 --------------------------------

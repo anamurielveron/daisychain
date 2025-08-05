@@ -286,6 +286,8 @@ Screen::Screen(int newId, unsigned int newTotalInstructions, string timeArrived,
 		vars[i].varName = "empty";
 		vars[i].value = 0;
 	}
+
+	memory->AddNewProcess(name, instructions, process_mem_size);
 }
 
 Screen::Screen(const string& processName, Memory* mem, const vector<string>& instructions)
@@ -306,8 +308,6 @@ Screen::Screen(const string& processName, Memory* mem, const vector<string>& ins
 
 	memory->AddNewProcess(name, instructions, process_mem_size);
 }
-
-
 
 Screen::Screen(const string& processName, int memorySize, const vector<string>& instr, Memory* mem)
 	: id(-1),
@@ -354,6 +354,8 @@ Screen::Screen(Screen&& other) noexcept
 	other.finished.store(false);
 	other.nestedLoopNum = 0;
 	other.memory = nullptr;
+
+	//memory->AddNewProcess(name, instructions, process_mem_size);
 }
 
 
