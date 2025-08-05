@@ -41,10 +41,19 @@ private:
     Memory* memory;
     int process_mem_size;
 
+    std::string arrivalTime;   // New field to keep track of process arrival time
+    int memorySize;            // New field to store the memory size requested by this process
+
+
 public:
-    Screen(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName, Memory* mem);
-    Screen(const string& processName, Memory* mem, const vector<string>& instructions);
-    Screen(const string& processName, int memorySize, const vector<string>& instructions, Memory* mem);
+    Screen(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName); // Used 
+
+    Screen(const string& processName, Memory* mem, const vector<string>& instructions); // AddNewProcess
+
+    Screen(const string& processName, int memorySize, const vector<string>& instructions, Memory* mem); // Used by command - c
+
+    Screen(int id, unsigned int totalInstructions, std::string arrivalTime, const std::string& processName, int memorySize, Memory* mem);
+
 
 
     Screen(const Screen&) = delete;
@@ -105,6 +114,13 @@ public:
     bool GetVariable(const std::string& name, int& value, int& address) const;
     bool READ(const std::string& var, uint32_t memory_address);
     bool WRITE(uint32_t memory_address, uint16_t value);
+
+    // Return list of instructions
+    std::vector<std::string> GetInstructionVector() const;
+
+    // Print variables in the process
+    void PrintVariables() const;
+
 };
 
 #endif // SCREEN_H
