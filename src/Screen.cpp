@@ -271,7 +271,8 @@ void Screen::AddPrintLog(const string& message, int coreNum) {
 }
 */
 
-Screen::Screen(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName)
+/*
+Screen::Screen(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName, Memory* mem)
 	: id(newId),
 	totalInstructions(newTotalInstructions),
 	executedInstructions(0),
@@ -279,7 +280,7 @@ Screen::Screen(int newId, unsigned int newTotalInstructions, string timeArrived,
 	coreAssigned(-1),
 	name(processName),
 	finished(false),
-	memory(nullptr) // important to initialize
+	memory(mem) // important to initialize
 {
 	instructions.clear(); // if you want it empty
 	for (int i = 0; i < 100; ++i) {
@@ -289,6 +290,7 @@ Screen::Screen(int newId, unsigned int newTotalInstructions, string timeArrived,
 
 	memory->AddNewProcess(name, instructions, process_mem_size);
 }
+*/
 
 Screen::Screen(const string& processName, Memory* mem, const vector<string>& instructions)
 	: id(-1),
@@ -355,7 +357,7 @@ Screen::Screen(Screen&& other) noexcept
 	other.nestedLoopNum = 0;
 	other.memory = nullptr;
 
-	//memory->AddNewProcess(name, instructions, process_mem_size);
+	memory->AddNewProcess(name, instructions, process_mem_size);
 }
 
 

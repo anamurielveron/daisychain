@@ -39,14 +39,14 @@ private:
 
     vector<string> instructions; // Holds the list of instructions for the process
     Memory* memory;
-    int process_mem_size;
+    int process_mem_size = 4092;
 
     std::string arrivalTime;   // New field to keep track of process arrival time
     int memorySize;            // New field to store the memory size requested by this process
 
 
 public:
-    Screen(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName); // Used 
+    //Screen(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName, Memory* mem); // Used 
 
     Screen(const string& processName, Memory* mem, const vector<string>& instructions); // AddNewProcess
 

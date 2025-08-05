@@ -1,4 +1,4 @@
-using namespace std;
+﻿using namespace std;
 
 #include "FCFSScheduler.h"
 #include "utils.h"
@@ -87,7 +87,7 @@ void FCFSScheduler::SchedulerLoop() {
                     if (!cores[i]) {
                         string processName = "screen_" + padNumberFCFS(currentPidInc, 2);
                         unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
-                        cores[i] = std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName);
+                        //cores[i] = std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName);
                         cores[i]->SetCoreValue(i);
                         currentPidInc++;
                         assignedToCore = true;
@@ -97,7 +97,7 @@ void FCFSScheduler::SchedulerLoop() {
                 if (!assignedToCore) {
                     string processName = "screen_" + padNumberFCFS(currentPidInc, 2);
                     unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
-                    readyQueue.push(std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName));
+                    //readyQueue.push(std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName));
                     currentPidInc++;
                 }
             }
@@ -115,26 +115,64 @@ void FCFSScheduler::SchedulerLoop() {
     }
 }
 
+string padNumber(int number, int width) {
+    string numStr = to_string(number);
+    if (numStr.length() >= width)
+        return numStr;
+    return string(width - numStr.length(), '0') + numStr;
+}
+
 void FCFSScheduler::CreateProcess(bool isBatch, const string& userProvidedName) {
     lock_guard<mutex> lock(schedulerMutex);
 
     string processName;
     if (isBatch) {
-        string processName = "screen_" + padNumberFCFS(currentPidInc, 2);
+        processName = "screen_" + padNumber(currentPidInc, 2);
     }
     else {
         processName = userProvidedName;
     }
 
     unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
-    unique_ptr<Screen> newProcess = std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName);
+    string timestamp = getCurrentTimestamp();
+
+    // Assign random memory size for dummy processes only
+    int memSize = isBatch ? (rand() % 451 + 50) : 0; // 50�500 KB if batch, else 0
+
+    // Create the Screen (process) with random instructions + memory
+    unique_ptr<Screen> newProcess = std::make_unique<Screen>(
+        currentPidInc, instructions, timestamp, processName, memSize, memory);
+
+    /*
+    // ? CHECKER: Print process info if batch/dummy
+    if (isBatch) {
+        cout << "\n=== DUMMY PROCESS CREATED ===" << endl;
+        cout << "Process Name : " << processName << endl;
+        cout << "PID          : " << currentPidInc << endl;
+        cout << "Instructions : " << instructions << endl;
+        cout << "Memory Size  : " << memSize << " KB" << endl;
+
+        cout << "--- Instruction List ---" << endl;
+        for (const string& instr : newProcess->GetInstructionVector()) {
+            cout << "  " << instr << endl;
+        }
+
+        cout << "--- Variable List ---" << endl;
+        newProcess->PrintVariables();  // Uses your own PrintVariables() method
+        cout << "===========================\n" << endl;
+    }
+    */
+
     currentPidInc++;
 
+    /*
     bool assigned = false;
     for (int i = 0; i < numCores; i++) {
-        if (!cores[i]) {
-            cores[i] = std::move(newProcess);
-            cores[i]->SetCoreValue(i);
+        if (cores[i].isEmpty) {
+            cores[i].proc = std::move(newProcess);
+            cores[i].proc->SetCoreValue(i);
+            cores[i].qRemaining = quantum;
+            cores[i].isEmpty = false;
             assigned = true;
             break;
         }
@@ -143,7 +181,10 @@ void FCFSScheduler::CreateProcess(bool isBatch, const string& userProvidedName) 
     if (!assigned) {
         readyQueue.push(std::move(newProcess));
     }
+    */
 }
+
+
 
 void FCFSScheduler::DisplayStatus(ostream& os) {
     lock_guard<mutex> lock(schedulerMutex);
