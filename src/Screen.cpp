@@ -328,8 +328,6 @@ Screen::Screen(const string& processName, int memorySize, const vector<string>& 
 		vars[i].value = 0;
 	}
 
-	cout << "hello";
-
 	memory->AddNewProcess(name, instructions, process_mem_size);
 }
 
@@ -567,7 +565,7 @@ Screen::Screen(int id, unsigned int totalInstructions, string arrivalTime, const
 		instructions.push_back("DUMMY_INSTRUCTION");
 	}
 
-	memory->AddNewProcess(name, instructions, process_mem_size);
+	memory->AddNewProcess(name, instructions, this->memorySize);
 }
 
 // Return the instruction vector

@@ -38,7 +38,6 @@ void Memory::LRU_AssignProcessToFrame(string process_index) {
 
 	
 	if (page_table.size() > 0) {
-		cout << "Hello World";
 		for (Table page : page_table) {
 			if (page.process == process_index) {
 				page_to_assign = page;
@@ -127,6 +126,8 @@ void Memory::AddNewProcess(string name, vector<string> instructions, int process
 		newRow.pages.push_back(temp_Page);
 
 		temp.clear();
+
+		i++;
 	}
 
 	page_table.push_back(newRow);
