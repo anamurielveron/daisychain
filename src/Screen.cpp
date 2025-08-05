@@ -315,6 +315,7 @@ void Screen::PrintVariables() const {
 	}
 }
 
+<<<<<<< HEAD
 
 
 void Screen::parseCustomInstructions(const string& instructions) {
@@ -402,6 +403,8 @@ void Screen::ExecuteInstruction(int coreNum) {
 }
 
 // Getters and setters
+=======
+>>>>>>> parent of edb941c (Revert "test")
 int Screen::GetPID() const { return id; }
 string Screen::GetName() const { return name; }
 string Screen::GetArrivalTime() const { return arrivalTimestamp; }
