@@ -38,7 +38,6 @@ void Memory::LRU_AssignProcessToFrame(string process_index) {
 
 	
 	if (page_table.size() > 0) {
-		cout << "Hello World";
 		for (Table page : page_table) {
 			if (page.process == process_index) {
 				page_to_assign = page;
@@ -103,8 +102,6 @@ void Memory::LRU_DetachProcessFromMemory(string process) {
 }
 
 void Memory::AddNewProcess(string name, vector<string> instructions, int process_size) {
-	cout << "Hello World";
-
 	Table newRow;
 	int number_of_pages = process_size / mem_per_frame;
 	int instructions_per_page = instructions.size() / number_of_pages;
@@ -130,6 +127,8 @@ void Memory::AddNewProcess(string name, vector<string> instructions, int process
 
 		temp.clear();
 	}
+
+	page_table.push_back(newRow);
 }
 
 void Memory::GenerateMemoryReport_File(int quantumCycle) {
