@@ -161,7 +161,8 @@ void Screen::DECLARE(string name, int val) {
 	int foundIndex = FindVariable(name);
 
 	if (foundIndex == -1) {
-		for (int i = 0; i < 100; i++) {
+		memory->VariableDeclaration(val, name);
+		for (int i = 0; i < 32; i++) {
 			if (vars[i].varName == "empty") {
 				vars[i].varName = name;
 				vars[i].value = val;
@@ -271,7 +272,7 @@ void Screen::AddPrintLog(const string& message, int coreNum) {
 }
 */
 
-Screen::Screen(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName)
+Screen::Screen(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName, Memory* mem)
 	: id(newId),
 	totalInstructions(newTotalInstructions),
 	executedInstructions(0),
@@ -279,13 +280,15 @@ Screen::Screen(int newId, unsigned int newTotalInstructions, string timeArrived,
 	coreAssigned(-1),
 	name(processName),
 	finished(false),
-	memory(nullptr) // important to initialize
+	memory(mem) // important to initialize
 {
 	instructions.clear(); // if you want it empty
 	for (int i = 0; i < 100; ++i) {
 		vars[i].varName = "empty";
 		vars[i].value = 0;
 	}
+
+	memory->AddNewProcess(name, instructions, process_mem_size);
 }
 
 Screen::Screen(const string& processName, Memory* mem, const vector<string>& instructions)
@@ -306,8 +309,6 @@ Screen::Screen(const string& processName, Memory* mem, const vector<string>& ins
 
 	memory->AddNewProcess(name, instructions, process_mem_size);
 }
-
-
 
 Screen::Screen(const string& processName, int memorySize, const vector<string>& instr, Memory* mem)
 	: id(-1),
@@ -354,6 +355,8 @@ Screen::Screen(Screen&& other) noexcept
 	other.finished.store(false);
 	other.nestedLoopNum = 0;
 	other.memory = nullptr;
+
+	memory->AddNewProcess(name, instructions, process_mem_size);
 }
 
 

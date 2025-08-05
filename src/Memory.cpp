@@ -18,7 +18,7 @@ Memory::Memory(int mem_limit, int frame_mem)
 	: max_mem(mem_limit), mem_per_frame(frame_mem) {
 	num_of_frames = (max_mem / mem_per_frame)-1;
 
-    memoryData.resize(32, 0);
+    memoryData.resize(32, -1);
 
 	mem_frames.resize(num_of_frames);
 	int address = mem_per_frame;
@@ -103,6 +103,8 @@ void Memory::LRU_DetachProcessFromMemory(string process) {
 }
 
 void Memory::AddNewProcess(string name, vector<string> instructions, int process_size) {
+	cout << "Hello World";
+
 	Table newRow;
 	int number_of_pages = process_size / mem_per_frame;
 	int instructions_per_page = instructions.size() / number_of_pages;
@@ -249,6 +251,24 @@ void Memory::MoveToNextInstruction(string process) {
 
 	if (page_table[j].assigned_address > 0) {
 		page_table[j].pages[page_table[j].current_Page].SetCurrentInstruction();
+	}
+}
+
+bool Memory::VariableDeclaration(int value, string process_Name) {
+	bool isFull = true;
+
+	for (int i = 0; i < 32; i++) {
+		if (memoryData[i].value == -1) {
+			memoryData[i].value = value;
+			memoryData[i].process = process_Name;
+			isFull = false;
+			break;
+		}
+		isFull = true;
+	}
+
+	if (isFull) {
+		cout << "Memory is Full" << "\n";
 	}
 }
   
