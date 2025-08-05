@@ -63,11 +63,13 @@ void RRScheduler::SchedulerLoop() {
                     // Check if process is done
                     if (cores[i].proc->IsFinished()) {
                         doneQueue.push(std::move(cores[i].proc)); // Move unique_ptr
+                        memory->LRU_DetachProcessFromMemory(cores[i].proc->GetName());
                         // Assign next process from ready queue if available
                         if (!readyQueue.empty()) {
                             unique_ptr<Screen> nextProcess = std::move(readyQueue.front());
                             readyQueue.pop();
                             nextProcess->SetCoreValue(i);
+                            memory->LRU_AssignProcessToFrame(nextProcess->GetName());
                             cores[i].proc = std::move(nextProcess);
                             cores[i].qRemaining = quantum;
                             cores[i].isEmpty = false;
@@ -80,12 +82,14 @@ void RRScheduler::SchedulerLoop() {
                     }
                     // Check if quantum is exhausted but process is not done (preemption)
                     else if (cores[i].qRemaining <= 0) {
+                        memory->LRU_DetachProcessFromMemory(cores[i].proc->GetName());
                         readyQueue.push(std::move(cores[i].proc)); // Move process back to ready queue
                         // Assign next process from ready queue if available
                         if (!readyQueue.empty()) {
                             unique_ptr<Screen> nextProcess = std::move(readyQueue.front());
                             readyQueue.pop();
                             nextProcess->SetCoreValue(i);
+                            memory->LRU_AssignProcessToFrame(nextProcess->GetName());
                             cores[i].proc = std::move(nextProcess);
                             cores[i].qRemaining = quantum;
                             cores[i].isEmpty = false;

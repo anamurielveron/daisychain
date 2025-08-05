@@ -303,6 +303,8 @@ Screen::Screen(const string& processName, Memory* mem, const vector<string>& ins
 		vars[i].varName = "empty";
 		vars[i].value = 0;
 	}
+
+	memory->AddNewProcess(name, instructions, process_mem_size);
 }
 
 
@@ -322,6 +324,8 @@ Screen::Screen(const string& processName, int memorySize, const vector<string>& 
 		vars[i].varName = "empty";
 		vars[i].value = 0;
 	}
+
+	memory->AddNewProcess(name, instructions, process_mem_size);
 }
 
 Screen::Screen(Screen&& other) noexcept

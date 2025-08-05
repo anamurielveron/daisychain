@@ -39,6 +39,7 @@ private:
 
     vector<string> instructions; // Holds the list of instructions for the process
     Memory* memory;
+    int process_mem_size;
 
 public:
     Screen(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName);

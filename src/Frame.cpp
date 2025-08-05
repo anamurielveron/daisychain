@@ -18,6 +18,7 @@ bool Frame::CheckIsOccupied() {
 void Frame::EmptyFrame() {
 	is_occupied = false;
 	current_process = "";
+	assigned_Page = nullptr;
 }
 
 string Frame::CheckContents() {
