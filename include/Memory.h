@@ -22,37 +22,47 @@ class Screen;
 class Memory {
 private:
 	struct Table {
-			string process;
-			vector<Page> pages;
-			int assigned_address;
-			int current_Page = 0;;
-		};
+		string process;
+		vector<Page> pages;
+		int assigned_address;
+		int current_Page = 0;;
+	};
+	struct Values {
+		string process;
+		int value;
+	};
 	std::vector<Frame> mem_frames;
 	stack<int> free_frames;
 	vector<Table> page_table;
     int max_mem;
     int num_of_frames;
     int mem_per_frame;
-    std::vector<int> memoryData; // actual memory to store int values
+    std::vector<Values> memoryData; // actual memory to store int values
 
 public:
 	Memory(int mem_limit, int frame_mem);
 	void LRU_AssignProcessToFrame(string process_index);
 	void LRU_DetachProcessFromMemory(string process);
 	void AddNewProcess(string name, vector<string> instructions, int process_size);
+	void GenerateMemoryReport_File(int quantumCycle);
 	void GenerateMemoryReport(int quantumCycle);
 	void SetNextPageInProcess(string process);
 	void MoveToNextInstruction(string process);
-	int Read(int address) const {
+	bool VariableDeclaration(int value, string process_Name);
+	int Read(int address, string process_Name) const {
         if (address < 0 || address >= max_mem)
             throw std::out_of_range("Memory read out of bounds");
-        return memoryData[address];
+		if (memoryData[address].process != process_Name)
+			throw std::out_of_range("value address is not part of process");
+        return memoryData[address].value;
     }
 
-    void Write(int address, int value) {
+    void Write(int address, int value,  string process_Name) {
         if (address < 0 || address >= max_mem)
             throw std::out_of_range("Memory write out of bounds");
-        memoryData[address] = value;
+		if (memoryData[address].process != process_Name)
+			throw std::out_of_range("value address is not part of process");
+        memoryData[address].value = value;
     }
 };
 

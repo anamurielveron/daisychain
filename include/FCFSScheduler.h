@@ -15,13 +15,8 @@ using namespace std;
 #include "Screen.h"
 #include "BaseScheduler.h"
 
-
 #ifndef FCFSSCHEDULER_H
 #define FCFSSCHEDULER_H
-
-#include <atomic>
-
-extern std::atomic<bool> enableBatch;
 
 class FCFSScheduler : public BaseScheduler {
 private:
@@ -39,27 +34,18 @@ private:
     int batchProcessFrequency;
     int delayPerExecution;
 
-    std::atomic<bool> enableBatchFlag;
-
-    Memory* memory;
-
-
 public:
-    FCFSScheduler(int num_cores, unsigned int min_ins, unsigned int max_ins, int batch_freq, int delay_exec, Memory* mem = nullptr);
+    FCFSScheduler(int num_cores, unsigned int min_ins, unsigned int max_ins, int batch_freq, int delay_exec);
     ~FCFSScheduler();
     void Start() override;
     void Stop() override;
     void SchedulerLoop() override;
     void CreateProcess(bool isBatch = false, const string& userProvidedName = "") override;
+    void CreateProcessWithMemory(bool isBatch, const string& processName, int memorySize) override;
+    void CreateProcessWithInstructions(const string& processName, int memorySize, const string& instructions) override;
     void DisplayStatus(ostream& os) override;
     bool IsRunning() override;
     Screen* GetProcessByName(const string& name) override;
-
-    void SetBatchEnabled(bool enabled) override;
-
-    void CreateProcessWithInstructions(const string& processName, int processSize, const vector<string>& instructions) override;
-
 };
 
 #endif // FCFSSCHEDULER_H
-

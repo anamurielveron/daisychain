@@ -106,23 +106,22 @@ bool readConfig(Config& config) {
 }
 
 void initialize() {
-
-    Memory mem(16384, 4096);
-
     printColor("\"initialize\" command recognized. Initializing scheduler...\n", YELLOW);
-    if (scheduler_initialized.load()) { // Use load for atomic boolean
-        printColor("Scheduler already initialized. Please stop it first if you want to re-initialize.\n", YELLOW);
+
+    if (scheduler_initialized.load()) {
+        printColor("Scheduler already initialized. Please stop and restart if needed.\n", YELLOW);
         return;
     }
-    if (readConfig(globalConfig)) { // Read config parameters
-        // Create Memory object first using memory parameters from config
+
+    if (readConfig(globalConfig)) {
+        // Create Memory object
         Memory* memory = new Memory(
-            globalConfig.max_overall_mem,  // mem_limit
-            globalConfig.mem_per_frame     // frame_mem
+            globalConfig.max_overall_mem,
+            globalConfig.mem_per_frame
         );
 
+        // Initialize the correct scheduler type
         if (globalConfig.scheduler_type == "fcfs") {
-            // Assuming FCFSScheduler also needs Memory parameter - update constructor call as needed
             globalScheduler = new FCFSScheduler(
                 globalConfig.num_cpu,
                 globalConfig.min_ins,
@@ -131,7 +130,7 @@ void initialize() {
                 globalConfig.delay_per_exec,
                 memory
             );
-            printColor("FCFS Scheduler configured.\n", GREEN);
+            printColor("FCFS Scheduler created.\n", GREEN);
         }
         else if (globalConfig.scheduler_type == "rr") {
             globalScheduler = new RRScheduler(
@@ -143,11 +142,10 @@ void initialize() {
                 globalConfig.delay_per_exec,
                 memory
             );
-            printColor("Round Robin Scheduler configured (Quantum: " + to_string(globalConfig.quantum_cycles) + ").\n", GREEN);
+            printColor("Round Robin Scheduler created (Quantum: " + to_string(globalConfig.quantum_cycles) + ").\n", GREEN);
         }
         else {
-            printColor("Invalid scheduler type specified in config.txt. Defaulting to FCFS.\n", RED);
-            // Assuming FCFSScheduler also needs Memory parameter - update constructor call as needed
+            printColor("Invalid scheduler type in config.txt. Defaulting to FCFS.\n", RED);
             globalScheduler = new FCFSScheduler(
                 globalConfig.num_cpu,
                 globalConfig.min_ins,
@@ -157,51 +155,44 @@ void initialize() {
                 memory
             );
         }
-        globalScheduler->SetBatchEnabled(true); // Start Dummy
-        globalScheduler->Start();
-        scheduler_initialized.store(true); // Use store for atomic boolean
+
+        scheduler_initialized.store(true);
         printColor("Scheduler initialized with " + to_string(globalConfig.num_cpu) + " cores.\n", GREEN);
     }
     else {
-        printColor("Failed to load config. Using default scheduler (FCFS) and parameters.\n", YELLOW);
-        // Create Memory object with default parameters
-        Memory* memory = new Memory(
-            globalConfig.max_overall_mem,  // mem_limit
-            globalConfig.mem_per_frame     // frame_mem
-        );
-        // Assuming FCFSScheduler also needs Memory parameter - update constructor call as needed
-        globalScheduler = new FCFSScheduler(
-            globalConfig.num_cpu,
-            globalConfig.min_ins,
-            globalConfig.max_ins,
-            globalConfig.batch_process_freq,
-            globalConfig.delay_per_exec
-        );
-        globalScheduler->Start();
-        scheduler_initialized.store(true); // Use store for atomic boolean
+        printColor("Failed to load config.txt. Scheduler not initialized.\n", RED);
     }
 }
 
-void schedulerStart() { // Renamed from schedulerTest
-    printColor("\"scheduler-start\" command recognized. Starting continuous process generation...\n", YELLOW);
-    if (globalScheduler != nullptr && globalScheduler->IsRunning()) {
-        // The scheduler's loop itself handles continuous process generation based on batchProcessFrequency
-        printColor("Scheduler is generating processes. Use 'screen -ls' to see active processes.\n", GREEN);
+
+void schedulerStart() {
+    printColor("\"scheduler-start\" command recognized. Starting scheduler...\n", YELLOW);
+
+    if (!scheduler_initialized.load()) {
+        printColor("Scheduler not initialized. Run 'initialize' first.\n", RED);
+        return;
+    }
+
+    if (globalScheduler != nullptr && !globalScheduler->IsRunning()) {
+        globalScheduler->Start();                 // Start the scheduler thread
+        globalScheduler->SetBatchEnabled(true);   // Enable process generation
+        printColor("Scheduler thread started and batch process generation enabled.\n", GREEN);
     }
     else {
-        printColor("Scheduler not initialized or not running. Please run 'initialize' first.\n", RED);
+        printColor("Scheduler already running.\n", YELLOW);
     }
 }
+
 
 void schedulerStop() {
-    printColor("\"scheduler-stop\" command recognized. Stopping scheduler...\n", YELLOW);
-    if (globalScheduler != nullptr) {
-        globalScheduler->SetBatchEnabled(false); // Just stop dummy processes
-        printColor("Batch process generation stopped. Scheduler will finish remaining processes.\n", GREEN);
-        printColor("Scheduler stopped.\n", GREEN);
+    printColor("\"scheduler-stop\" command recognized. Stopping batch process generation...\n", YELLOW);
+
+    if (globalScheduler != nullptr && globalScheduler->IsRunning()) {
+        globalScheduler->SetBatchEnabled(false);
+        printColor("Batch process generation disabled. Scheduler will continue running existing processes.\n", GREEN);
     }
     else {
-        printColor("Scheduler not running.\n", YELLOW);
+        printColor("Scheduler is not running.\n", YELLOW);
     }
 }
 
@@ -246,160 +237,140 @@ int main() {
     printSubtitle();
 
     while (true) {
-        // The screen will now scroll for general commands.
-        // Clearing is handled explicitly by 'clear' command or 'screen -r' mode transitions.
-
         string command;
-        printColor("\n~> ", GREEN); // Added newline for better spacing with scrolling
+        printColor("\n~> ", GREEN);
         getline(cin, command);
 
-        // Trim whitespace from command
         command.erase(0, command.find_first_not_of(" \t\n\r\f\v"));
         command.erase(command.find_last_not_of(" \t\n\r\f\v") + 1);
-
 
         if (command == "help") {
             printHelp();
         }
         else if (command == "initialize") {
             initialize();
-            // No screen clear needed here, output will just follow.
         }
         else if (!scheduler_initialized.load() && command != "exit") { // Only 'exit' is recognized before 'initialize'
             printColor("Please run 'initialize' first before executing other commands.\n", RED);
         }
         else if (command.find("screen") == 0) { // Command starts with "screen"
-            if (command.find("-s") != string::npos) { // Create new screen/process
-
+            if (command.find("-s") != string::npos) {
                 istringstream iss(command);
-                string cmd, flag, processName;
-                iss >> cmd >> flag >> processName;
+                string cmd, flag, processName, memSizeStr;
+                iss >> cmd >> flag >> processName >> memSizeStr;
+
+                bool valid = true;
+
+                if (processName.empty() || memSizeStr.empty()) {
+                    printColor("Usage: screen -s <name> <memory_size>\n", RED);
+                    valid = false;
+                }
+
+                int memSize = 0;
+                if (valid) {
+                    try {
+                        memSize = stoi(memSizeStr);
+                    }
+                    catch (...) {
+                        printColor("Invalid memory size format.\n", RED);
+                        valid = false;
+                    }
+                }
+
+                auto isPowerOfTwo = [](int x) { return x >= 64 && x <= 65536 && (x & (x - 1)) == 0; };
+                if (valid && !isPowerOfTwo(memSize)) {
+                    printColor("Invalid memory size. Must be power of 2 between 64 and 65536 bytes.\n", RED);
+                    valid = false;
+                }
+
+                if (valid && !globalScheduler) {
+                    printColor("Scheduler not initialized. Cannot create a process.\n", RED);
+                    valid = false;
+                }
+
+                if (valid && globalScheduler) {
+                    Screen* existing = globalScheduler->GetProcessByName(processName);
+                    if (existing) {
+                        printColor("Process '" + processName + "' already exists.\n", RED);
+                        valid = false;
+                    }
+                }
+
+                if (valid) {
+                    vector<string> defaultInstructions = {
+                        "DECLARE varA 10",
+                        "ADD varA varA varA",
+                        "PRINT(\"Hello from \" + varA)"
+                    };
+
+                    globalScheduler->CreateProcessWithInstructions(processName, memSize, defaultInstructions);
+
+                    Screen* screenInstance = globalScheduler->GetProcessByName(processName);
+                    if (screenInstance) {
+                        printColor("Process '" + processName + "' created successfully.\n", GREEN);
+                        screenInstance->screen();
+                    }
+                    else {
+                        printColor("Failed to create process.\n", RED);
+                    }
+                }
+            }
+
+
+            else if (command.find("-r") != string::npos) {
+                string processName = command.substr(command.find("-r") + 3);
+                processName = trim(processName);
+
+                bool valid = true;
 
                 if (processName.empty()) {
-                    printColor("Error: screen name missing. Usage: screen -s <name>\n", RED);
-                    continue;
-                }
-
-                if (!processName.empty()) {
-                    if (globalScheduler) {
-                        Screen* existingProcess = globalScheduler->GetProcessByName(processName); // Checks running processes
-                        if (existingProcess) {
-                            printColor("Screen '" + processName + "' is already running.\n", MAGENTA);
-                        }
-                        else {
-                            globalScheduler->CreateProcess(false, processName); // Create a single non-batch process with user-provided name
-                            //printColor("Screen/Screen '" + processName + "' created. Use 'screen -ls' to see it.\n", GREEN);
-                            globalScheduler->GetProcessByName(processName)->screen();
-                        }
-                    }
-                    else {
-                        printColor("Scheduler not initialized. Cannot create a process.\n", RED);
-                    }
-                }
-                else {
-                    printColor("Invalid screen name. Usage: screen -s <name>\n", RED);
-                }
-            }
-            else if (command.find("-r") != string::npos) { // Resume existing screen/process
-                string processName = command.substr(command.find("-r") + 3); // Get name after "-r "
-                if (!processName.empty()) {
-                    if (globalScheduler) {
-                        // RE-FETCH THE PROCESS POINTER INSIDE THE LOOP FOR SAFETY
-                        // This ensures 'targetProcess' always points to a valid, currently active object.
-                        Screen* targetProcess = globalScheduler->GetProcessByName(processName);
-
-                        if (targetProcess) { // Check if process is currently running/active in cores
-                            // We explicitly check IsFinished() again inside the loop for robustness
-                            // although GetProcessByName should ideally not return finished processes.
-                            if (targetProcess->IsFinished()) { // This check becomes more critical if GetProcessByName ever returns a finished process
-                                printColor("Screen '" + processName + "' has finished execution.\n", YELLOW);
-                            }
-                            else {
-                                targetProcess->screen();
-                                // Initial display of the process screen
-                                /*
-                                system("cls");
-                                printBanner();
-                                printColor("\n--- Screen Screen: " + targetProcess->GetName() + " ---\n", YELLOW);
-                                printColor("ID: " + to_string(targetProcess->GetPID()) + "\n", WHITE);
-                                printColor("Logs:\n", WHITE);
-                                for (const string& log : targetProcess->GetPrintLogs()) {
-                                    cout << log << endl;
-                                }
-                                printColor("Current instruction line: " + to_string(targetProcess->GetExecutedInstructions()) + "\n", WHITE);
-                                printColor("Lines of code: " + to_string(targetProcess->GetTotalInstructions()) + "\n", WHITE);
-
-                                printPlaceHolderConsoles(); // Display placeholder console options
-
-                                while (true) { // Loop for process-specific commands
-                                    string process_command;
-                                    printColor("~> process-cli> ", GREEN);
-                                    getline(cin, process_command);
-
-                                    process_command.erase(0, process_command.find_first_not_of(" \t\n\r\f\v"));
-                                    process_command.erase(process_command.find_last_not_of(" \t\n\r\f\v") + 1);
-
-                                    // Re-fetch targetProcess inside the loop to ensure it's still valid
-                                    Screen* currentProcessState = globalScheduler->GetProcessByName(processName);
-
-                                    if (!currentProcessState) {
-                                        // Screen is no longer running or was deallocated/moved.
-                                        printColor("Screen '" + processName + "' is no longer active or has finished.\n", RED);
-                                        break; // Exit process screen loop
-                                    }
-
-                                    if (process_command == "process-smi") { // Print simple information about process
-                                        system("cls"); // Clear and redraw
-                                        printBanner();
-                                        printColor("\n--- Screen Screen: " + currentProcessState->GetName() + " ---\n", YELLOW);
-                                        printColor("ID: " + to_string(currentProcessState->GetPID()) + "\n", WHITE);
-                                        printColor("Logs:\n", WHITE);
-                                        for (const string& log : currentProcessState->GetPrintLogs()) {
-                                            cout << log << endl;
-                                        }
-                                        if (currentProcessState->IsFinished()) {
-                                            printColor("Finished!\n", YELLOW);
-                                        }
-                                        else {
-                                            printColor("Current instruction line: " + to_string(currentProcessState->GetExecutedInstructions()) + "\n", WHITE);
-                                            printColor("Lines of code: " + to_string(currentProcessState->GetTotalInstructions()) + "\n", WHITE);
-                                        }
-                                        printPlaceHolderConsoles();
-                                    }
-                                    else if (process_command == "exit") { // Return to main menu
-                                        break; // Exit process screen loop
-                                    }
-                                    else {
-                                        printColor("Unknown command within process screen.\n", RED);
-                                    }
-                                }
-                                */
-                                // Clear screen and re-print main menu header when exiting process screen
-                                system("cls");
-                                printBanner();
-                                printSubtitle();
-                            }
-                        }
-                        else {
-                            printColor("Screen '" + processName + "' not found or has finished execution.\n", MAGENTA);
-                        }
-                    }
-                    else {
-                        printColor("Scheduler not initialized. Cannot access processes.\n", RED);
-                    }
-                }
-                else {
                     printColor("Invalid screen name. Usage: screen -r <name>\n", RED);
+                    valid = false;
+                }
+
+                Screen* targetProcess = nullptr;
+
+                if (valid && !globalScheduler) {
+                    printColor("Scheduler not initialized. Cannot access processes.\n", RED);
+                    valid = false;
+                }
+
+                if (valid && globalScheduler) {
+                    targetProcess = globalScheduler->GetProcessByName(processName);
+                    if (!targetProcess) {
+                        printColor("Process '" + processName + "' not found or has finished execution.\n", MAGENTA);
+                        valid = false;
+                    }
+                }
+
+                if (valid && targetProcess) {
+                    if (targetProcess->IsFinished()) {
+                        vector<string> logs = targetProcess->GetPrintLogs();
+                        bool foundViolation = false;
+                        for (const auto& log : logs) {
+                            if (log.find("Access violation at address") != string::npos) {
+                                size_t addrStart = log.find("0x");
+                                string address = (addrStart != string::npos) ? log.substr(addrStart) : "Unknown address";
+                                string timestamp = getCurrentTimestamp();
+                                printColor("Process '" + processName + "' shut down due to memory access violation error that occurred at " + timestamp + ". " + address + " invalid.\n", RED);
+                                foundViolation = true;
+                                break;
+                            }
+                        }
+                        if (!foundViolation) {
+                            printColor("Screen '" + processName + "' has finished execution.\n", YELLOW);
+                        }
+                    }
+                    else {
+                        targetProcess->screen();
+                        system("cls");
+                        printBanner();
+                        printSubtitle();
+                    }
                 }
             }
-            else if (command.find("-ls") != string::npos) { // List all running processes
-                if (globalScheduler) {
-                    globalScheduler->DisplayStatus(cout); // Display status to console
-                }
-                else {
-                    printColor("Scheduler not initialized. No active processes to list.\n", CYAN);
-                }
-            }
+
+
             else if (command.find("-c") != string::npos) {
                 istringstream iss(command);
                 string cmd, flag, processName, memSizeStr, instructionBlock;
@@ -481,6 +452,9 @@ int main() {
         }
         else if (command == "report-util") {
             reportUtil();
+        }
+        else if (command == "vmstat") {
+            globalScheduler->DisplayMemoryStats();
         }
         else if (command == "clear") {
             clear(); // Explicit clear command

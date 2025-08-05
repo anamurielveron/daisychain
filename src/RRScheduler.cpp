@@ -7,15 +7,13 @@ string padNumber(int number, int width) {
     return string(width - numStr.length(), '0') + numStr;
 }
 
-
-RRScheduler::RRScheduler(int num_cores, int quantum_cycles, unsigned int min_ins,
-    unsigned int max_ins, int batch_freq, int delay_exec, Memory* mem_ptr)
+RRScheduler::RRScheduler(int num_cores, int quantum_cycles, unsigned int min_ins, unsigned int max_ins, int batch_freq, int delay_exec)
     : running(false), currentPidInc(1), cpuCycles(0), numCores(num_cores), quantum(quantum_cycles),
     minInstructions(min_ins), maxInstructions(max_ins), batchProcessFrequency(batch_freq),
-    delayPerExecution(delay_exec), memory(mem_ptr) {
+    delayPerExecution(delay_exec) {
     cores.resize(numCores);
     for (int i = 0; i < numCores; i++) {
-        cores[i].proc = nullptr; // Initialize unique_ptr to nullptr
+        cores[i].proc = nullptr;
         cores[i].qRemaining = 0;
         cores[i].isEmpty = true;
     }
@@ -28,7 +26,7 @@ RRScheduler::~RRScheduler() {
 void RRScheduler::Start() {
     if (!running) {
         running = true;
-        schedulerThread = std::thread(&RRScheduler::SchedulerLoop, this); // store in member
+        schedulerThread = std::thread(&RRScheduler::SchedulerLoop, this);
     }
 }
 
@@ -42,93 +40,58 @@ void RRScheduler::Stop() {
 }
 
 void RRScheduler::SchedulerLoop() {
-    srand(static_cast<unsigned int>(time(0)));
-
     while (running) {
         {
             lock_guard<mutex> lock(schedulerMutex);
 
             cpuCycles++; // Increment CPU cycle
 
-            // Screen cores
+            // Process cores
             for (int i = 0; i < numCores; i++) {
                 if (!cores[i].isEmpty && cores[i].proc && !cores[i].proc->IsFinished() && cores[i].proc->GetTotalInstructions() > 0) {
                     cores[i].proc->ExecuteInstruction(i);
                     cores[i].qRemaining--;
 
                     if (delayPerExecution > 0) {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExecution)); // Simulate busy-waiting
+                        std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExecution));
                     }
 
                     // Check if process is done
                     if (cores[i].proc->IsFinished()) {
-                        doneQueue.push(std::move(cores[i].proc)); // Move unique_ptr
-                        memory->LRU_DetachProcessFromMemory(cores[i].proc->GetName());
+                        doneQueue.push(std::move(cores[i].proc));
                         // Assign next process from ready queue if available
                         if (!readyQueue.empty()) {
                             unique_ptr<Screen> nextProcess = std::move(readyQueue.front());
                             readyQueue.pop();
                             nextProcess->SetCoreValue(i);
-                            memory->LRU_AssignProcessToFrame(nextProcess->GetName());
                             cores[i].proc = std::move(nextProcess);
                             cores[i].qRemaining = quantum;
                             cores[i].isEmpty = false;
                         }
                         else {
-                            cores[i].proc.reset(); // Core becomes idle
+                            cores[i].proc.reset();
                             cores[i].qRemaining = 0;
                             cores[i].isEmpty = true;
                         }
                     }
                     // Check if quantum is exhausted but process is not done (preemption)
                     else if (cores[i].qRemaining <= 0) {
-                        memory->LRU_DetachProcessFromMemory(cores[i].proc->GetName());
-                        readyQueue.push(std::move(cores[i].proc)); // Move process back to ready queue
+                        readyQueue.push(std::move(cores[i].proc));
                         // Assign next process from ready queue if available
                         if (!readyQueue.empty()) {
                             unique_ptr<Screen> nextProcess = std::move(readyQueue.front());
                             readyQueue.pop();
                             nextProcess->SetCoreValue(i);
-                            memory->LRU_AssignProcessToFrame(nextProcess->GetName());
                             cores[i].proc = std::move(nextProcess);
                             cores[i].qRemaining = quantum;
                             cores[i].isEmpty = false;
                         }
                         else {
-                            cores[i].proc.reset(); // Core becomes idle
+                            cores[i].proc.reset();
                             cores[i].qRemaining = 0;
                             cores[i].isEmpty = true;
                         }
                     }
-                }
-            }
-
-            if (memory != nullptr) {
-                //memory->GenerateMemoryReport(cpuCycles);
-            }
-
-            // Generate new processes based on batchProcessFrequency
-            if (batchProcessFrequency > 0 && cpuCycles % batchProcessFrequency == 0) {
-                bool assignedToCore = false;
-                for (int i = 0; i < numCores; ++i) {
-                    if (cores[i].isEmpty) {
-                        string processName = "screen_" + padNumber(currentPidInc, 2);
-                        unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
-                        unique_ptr<Screen> newProcess = std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName);
-                        cores[i].proc = std::move(newProcess);
-                        cores[i].proc->SetCoreValue(i);
-                        cores[i].qRemaining = quantum;
-                        cores[i].isEmpty = false;
-                        currentPidInc++;
-                        assignedToCore = true;
-                        break;
-                    }
-                }
-                if (!assignedToCore) {
-                    string processName = "screen_" + padNumber(currentPidInc, 2);
-                    unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
-                    readyQueue.push(std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName));
-                    currentPidInc++;
                 }
             }
 
@@ -163,7 +126,7 @@ void RRScheduler::CreateProcess(bool isBatch, const string& userProvidedName) {
     string timestamp = getCurrentTimestamp();
 
     // Assign random memory size for dummy processes only
-    int memSize = isBatch ? (rand() % 451 + 50) : 0; // 50–500 KB if batch, else 0
+    int memSize = isBatch ? (rand() % 451 + 50) : 0; // 50ï¿½500 KB if batch, else 0
 
     // Create the Screen (process) with random instructions + memory
     unique_ptr<Screen> newProcess = std::make_unique<Screen>(
@@ -187,6 +150,53 @@ void RRScheduler::CreateProcess(bool isBatch, const string& userProvidedName) {
         cout << "===========================\n" << endl;
     }
 
+    currentPidInc++;
+
+    bool assigned = false;
+    for (int i = 0; i < numCores; i++) {
+        if (cores[i].isEmpty) {
+            cores[i].proc = std::move(newProcess);
+            cores[i].proc->SetCoreValue(i);
+            cores[i].qRemaining = quantum;
+            cores[i].isEmpty = false;
+            assigned = true;
+            break;
+        }
+    }
+
+    if (!assigned) {
+        readyQueue.push(std::move(newProcess));
+    }
+}
+
+void RRScheduler::CreateProcessWithMemory(bool isBatch, const string& processName, int memorySize) {
+    lock_guard<mutex> lock(schedulerMutex);
+
+    unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
+    unique_ptr<Screen> newProcess = std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName, memorySize);
+    currentPidInc++;
+
+    bool assigned = false;
+    for (int i = 0; i < numCores; i++) {
+        if (cores[i].isEmpty) {
+            cores[i].proc = std::move(newProcess);
+            cores[i].proc->SetCoreValue(i);
+            cores[i].qRemaining = quantum;
+            cores[i].isEmpty = false;
+            assigned = true;
+            break;
+        }
+    }
+
+    if (!assigned) {
+        readyQueue.push(std::move(newProcess));
+    }
+}
+
+void RRScheduler::CreateProcessWithInstructions(const string& processName, int memorySize, const string& instructions) {
+    lock_guard<mutex> lock(schedulerMutex);
+
+    unique_ptr<Screen> newProcess = std::make_unique<Screen>(currentPidInc, getCurrentTimestamp(), processName, memorySize, instructions);
     currentPidInc++;
 
     bool assigned = false;
@@ -244,7 +254,7 @@ void RRScheduler::DisplayStatus(ostream& os) {
         const unique_ptr<Screen>& p = tempDoneQueue.front();
         os << p->GetName() << "    " << p->GetArrivalTime()
             << "    Finished    " << p->GetExecutedInstructions() << "/" << p->GetTotalInstructions() << endl;
-        doneQueue.push(std::move(tempDoneQueue.front())); // Move back
+        doneQueue.push(std::move(tempDoneQueue.front()));
         tempDoneQueue.pop();
     }
     os << "--------------------------------" << endl;
@@ -256,31 +266,26 @@ bool RRScheduler::IsRunning() {
 
 Screen* RRScheduler::GetProcessByName(const string& name) {
     lock_guard<mutex> lock(schedulerMutex);
-
-    // Check cores
     for (int i = 0; i < numCores; ++i) {
-        if (cores[i].proc && cores[i].proc->GetName() == name && !cores[i].proc->IsFinished()) {
+        if (!cores[i].isEmpty && cores[i].proc && cores[i].proc->GetName() == name && !cores[i].proc->IsFinished()) {
             return cores[i].proc.get();
         }
     }
 
-    // Check ready queue
-    queue<unique_ptr<Screen>> tempQueue;
-    Screen* found = nullptr;
+    // Also check ready queue
+    queue<unique_ptr<Screen>> tempReadyQueue;
+    Screen* foundProcess = nullptr;
+
     while (!readyQueue.empty()) {
-        auto proc = std::move(readyQueue.front());
-        readyQueue.pop();
-
-        if (proc->GetName() == name && !proc->IsFinished()) {
-            found = proc.get();
+        if (readyQueue.front()->GetName() == name && !readyQueue.front()->IsFinished()) {
+            foundProcess = readyQueue.front().get();
         }
-
-        tempQueue.push(std::move(proc));
+        tempReadyQueue.push(std::move(readyQueue.front()));
+        readyQueue.pop();
     }
-    // Restore readyQueue
-    while (!tempQueue.empty()) {
-        readyQueue.push(std::move(tempQueue.front()));
-        tempQueue.pop();
+    while (!tempReadyQueue.empty()) {
+        readyQueue.push(std::move(tempReadyQueue.front()));
+        tempReadyQueue.pop();
     }
 
     if (found) return found;
