@@ -110,6 +110,8 @@ void RRScheduler::SchedulerLoop() {
             // Generate new processes based on batchProcessFrequency
             if (batchProcessFrequency > 0 && cpuCycles % batchProcessFrequency == 0) {
                 bool assignedToCore = false;
+                int memSize = rand() % 451 + 50; // Added this line
+
                 for (int i = 0; i < numCores; ++i) {
                     if (cores[i].isEmpty) {
                         string processName = "screen_" + padNumber(currentPidInc, 2);
@@ -127,7 +129,7 @@ void RRScheduler::SchedulerLoop() {
                 if (!assignedToCore) {
                     string processName = "screen_" + padNumber(currentPidInc, 2);
                     unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
-                    readyQueue.push(std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName));
+                    readyQueue.push(std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName, memSize, memory));
                     currentPidInc++;
                 }
             }
