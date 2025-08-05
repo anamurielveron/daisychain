@@ -21,53 +21,24 @@
     <ClCompile Include="src\utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\FCFSScheduler.cpp">
+    <ClCompile Include="Process.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Screen.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\RRScheduler.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Frame.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Memory.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Page.cpp">
+    <ClCompile Include="FCFSScheduler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="data\banner.txt" />
-    <Text Include="config.txt" />
-    <Text Include="csopesy-backing-store.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\BaseScheduler.h">
+    <ClInclude Include="Process.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\FCFSScheduler.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Screen.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\RRScheduler.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Frame.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Memory.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Page.h">
+    <ClInclude Include="FCFSScheduler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

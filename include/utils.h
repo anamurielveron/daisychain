@@ -56,12 +56,3 @@ void clear();
  * @return std::string The current timestamp in MM/DD/YYYY, HH:MM:SS AM/PM format.
  */
 std::string getCurrentTimestamp();
-
-/**
- * @brief Trims leading and trailing spaces from a string.
- *
- * @param str The input string.
- * @return A trimmed version of the string.
- */
-std::string trim(const std::string& str);
-
