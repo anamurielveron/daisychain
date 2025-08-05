@@ -320,12 +320,15 @@ Screen::Screen(const string& processName, int memorySize, const vector<string>& 
 	name(processName),
 	finished(false),
 	instructions(instr),
-	memory(mem) 
+	memory(mem),
+	process_mem_size(memorySize)
 {
 	for (int i = 0; i < 100; ++i) {  // Initialize ALL 100 variables
 		vars[i].varName = "empty";
 		vars[i].value = 0;
 	}
+
+	cout << "hello";
 
 	memory->AddNewProcess(name, instructions, process_mem_size);
 }
@@ -552,17 +555,19 @@ void testReadWrite(Screen* process) {
 }
 
 Screen::Screen(int id, unsigned int totalInstructions, string arrivalTime, const string& processName, int memorySize, Memory* mem)
-	: id(id), totalInstructions(totalInstructions), arrivalTime(arrivalTime), name(processName), executedInstructions(0)
+	: id(id), totalInstructions(totalInstructions), arrivalTime(arrivalTime), name(processName), executedInstructions(0), process_mem_size(memorySize)
 {
 	// Memory setup
 	this->memorySize = memorySize;
 	this->memory = mem;
-	this->memory->LRU_AssignProcessToFrame(name); // If using LRU memory handling
+	//this->memory->LRU_AssignProcessToFrame(name); // If using LRU memory handling
 
 	// Generate dummy instructions (as before)
 	for (unsigned int i = 0; i < totalInstructions; ++i) {
 		instructions.push_back("DUMMY_INSTRUCTION");
 	}
+
+	memory->AddNewProcess(name, instructions, process_mem_size);
 }
 
 // Return the instruction vector

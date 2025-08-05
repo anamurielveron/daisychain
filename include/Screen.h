@@ -46,7 +46,7 @@ private:
 
 
 public:
-    //Screen(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName, Memory* mem); // Used 
+    Screen(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName, Memory* mem); // Used 
 
     Screen(const string& processName, Memory* mem, const vector<string>& instructions); // AddNewProcess
 

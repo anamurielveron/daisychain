@@ -115,19 +115,12 @@ void FCFSScheduler::SchedulerLoop() {
     }
 }
 
-string padNumber(int number, int width) {
-    string numStr = to_string(number);
-    if (numStr.length() >= width)
-        return numStr;
-    return string(width - numStr.length(), '0') + numStr;
-}
-
 void FCFSScheduler::CreateProcess(bool isBatch, const string& userProvidedName) {
     lock_guard<mutex> lock(schedulerMutex);
 
     string processName;
     if (isBatch) {
-        processName = "screen_" + padNumber(currentPidInc, 2);
+        processName = "screen_1";
     }
     else {
         processName = userProvidedName;
