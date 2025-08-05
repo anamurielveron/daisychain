@@ -546,6 +546,37 @@ void testReadWrite(Screen* process) {
 	process->WRITE(0x2000, 42);
 }
 
+Screen::Screen(int id, unsigned int totalInstructions, string arrivalTime, const string& processName, int memorySize, Memory* mem)
+	: id(id), totalInstructions(totalInstructions), arrivalTime(arrivalTime), name(processName), executedInstructions(0)
+{
+	// Memory setup
+	this->memorySize = memorySize;
+	this->memory = mem;
+	this->memory->LRU_AssignProcessToFrame(name); // If using LRU memory handling
+
+	// Generate dummy instructions (as before)
+	for (unsigned int i = 0; i < totalInstructions; ++i) {
+		instructions.push_back("DUMMY_INSTRUCTION");
+	}
+}
+
+// Return the instruction vector
+std::vector<std::string> Screen::GetInstructionVector() const {
+	return instructions;
+}
+
+// Print all declared variables
+void Screen::PrintVariables() const {
+	cout << "Variables:" << endl;
+	for (const auto& var : vars) {
+		if (var.varName != "empty") {
+			cout << "  " << var.varName << " = " << var.value << endl;
+		}
+	}
+}
+
+
+
 int Screen::GetPID() const { return id; }
 string Screen::GetName() const { return name; }
 string Screen::GetArrivalTime() const { return arrivalTimestamp; }
