@@ -46,12 +46,9 @@ private:
 
 
 public:
-    Screen(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName); // Used 
-
+    Screen(int newId, unsigned int newTotalInstructions, string timeArrived, const string& processName, Memory* mem); // Used 
     Screen(const string& processName, Memory* mem, const vector<string>& instructions); // AddNewProcess
-
     Screen(const string& processName, int memorySize, const vector<string>& instructions, Memory* mem); // Used by command - c
-
     Screen(int id, unsigned int totalInstructions, std::string arrivalTime, const std::string& processName, int memorySize, Memory* mem);
 
 

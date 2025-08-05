@@ -397,7 +397,7 @@ void Screen::ExecuteStringInstruction(const std::string& instr) {
 
 			printColor("WRITE: Writing value " + to_string(value) + " to address " + addressStr + "\n", CYAN);
 
-			this->memory->Write(addr, value);
+			this->memory->Write(addr, value, name);
 
 			printColor("WRITE operation completed successfully\n", GREEN);
 		}
@@ -420,7 +420,7 @@ void Screen::ExecuteStringInstruction(const std::string& instr) {
 
 			printColor("READ: Reading from address " + addressStr + "\n", CYAN);
 
-			int value = this->memory->Read(addr);
+			int value = this->memory->Read(addr, name);
 			this->DECLARE(destVar, value);
 
 			printColor("READ operation completed successfully, value: " + to_string(value) + "\n", GREEN);
