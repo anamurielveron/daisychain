@@ -14,6 +14,8 @@
 #include <chrono>
 #include <vector>
 #include <algorithm>
+#include <set> 
+#include <string>
 #include <limits> // Required for numeric_limits
 #include <memory> // Required for unique_ptr
 
@@ -227,6 +229,44 @@ void reportUtil() {
         printColor("Scheduler not initialized or not running. Please run 'initialize' first.\n", RED);
     }
 }
+
+void processSMI(Memory* memory) {
+    printColor("\"process-smi\" command recognized. Showing memory summary...\n", YELLOW);
+
+    if (!memory) {
+        printColor("Error: Memory system is not initialized.\n", RED);
+        return;
+    }
+
+    int totalMem = globalConfig.max_overall_mem;
+    int usedMem = 0;
+    int frameSize = globalConfig.mem_per_frame;
+
+    std::set<std::string> activeProcesses;
+    const auto& frames = memory->GetAllFrames();
+
+    for (const auto& frame : frames) {
+        if (frame.CheckIsOccupied()) {
+            usedMem += frameSize;
+            activeProcesses.insert(frame.CheckContents());
+        }
+    }
+
+    int freeMem = totalMem - usedMem;
+
+    printColor("\n===== PROCESS SMI SUMMARY =====\n", CYAN);
+    std::cout << std::left << std::setw(25) << "Total Memory (bytes):" << totalMem << "\n";
+    std::cout << std::left << std::setw(25) << "Used Memory (bytes):" << usedMem << "\n";
+    std::cout << std::left << std::setw(25) << "Free Memory (bytes):" << freeMem << "\n";
+    std::cout << std::left << std::setw(25) << "Active Processes: " << activeProcesses.size() << "\n";
+
+    for (const auto& name : activeProcesses) {
+        std::cout << "  - " << name << "\n";
+    }
+
+    printColor("================================\n", CYAN);
+}
+
 
 /**
 * MAIN FUNCTION
@@ -481,6 +521,17 @@ int main() {
         }
         else if (command == "report-util") {
             reportUtil();
+        }
+        else if (command == "process-smi") {
+            if (globalScheduler) {
+                Memory* mem = nullptr;
+                if (auto rr = dynamic_cast<RRScheduler*>(globalScheduler)) mem = rr->GetMemory();
+                else if (auto fcfs = dynamic_cast<FCFSScheduler*>(globalScheduler)) mem = fcfs->GetMemory();
+                processSMI(mem);
+            }
+            else {
+                printColor("Scheduler not initialized.\n", RED);
+            }
         }
         else if (command == "vmstat") {
             globalScheduler->DisplayMemoryStats();
