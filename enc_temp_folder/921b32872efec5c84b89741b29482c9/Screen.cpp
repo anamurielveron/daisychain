@@ -575,6 +575,8 @@ void Screen::PrintVariables() const {
 	}
 }
 
+
+
 int Screen::GetPID() const { return id; }
 string Screen::GetName() const { return name; }
 string Screen::GetArrivalTime() const { return arrivalTimestamp; }
