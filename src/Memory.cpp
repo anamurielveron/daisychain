@@ -16,9 +16,9 @@ const uint32_t MEMORY_MAX_ADDRESS = 0xFFFF; // Example: 64KB address space
 
 Memory::Memory(int mem_limit, int frame_mem)
 	: max_mem(mem_limit), mem_per_frame(frame_mem) {
-	num_of_frames = max_mem / mem_per_frame;
+	num_of_frames = (max_mem / mem_per_frame)-1;
 
-    memoryData.resize(max_mem, 0);
+    memoryData.resize(32, 0);
 
 	mem_frames.resize(num_of_frames);
 	int address = mem_per_frame;
@@ -36,63 +36,67 @@ void Memory::LRU_AssignProcessToFrame(string process_index) {
 	bool process_found = false;
 	int j = 0;
 
-	for (Table page : page_table) {
-		if (page.process == process_index) {
-			page_to_assign = page;
-			break;
-		}
-		j++;
-	}
-
-	//find an empty memory frame
-	while (i < num_of_frames) {
-		if (!mem_frames[i].CheckIsOccupied()) {
-			mem_frames[i].AssignProcess(page_to_assign.process, &page_to_assign.pages[page_to_assign.current_Page]);
-			page_to_assign.pages[page_to_assign.current_Page].SetCurrentFrame(i);
-			isAssigned = true;
-			page_table[j].assigned_address = mem_frames[i].GetFrameAddress();
-			break;
-		}
-
-		i++;
-	}
-
-	//if all occupied, find frame with least recently used process page
-	if (!isAssigned) {
-		int less_used_process = 0;
-		int i = 1;
-
-		while (i < num_of_frames) {
-			if (mem_frames[less_used_process].ReturnPageTally() > mem_frames[i].ReturnPageTally()) {
-				less_used_process = i;
+	if (page_table.size() > 0) {
+		for (Table page : page_table) {
+			if (page.process == process_index) {
+				page_to_assign = page;
+				break;
 			}
+			j++;
+		}
+
+		//find an empty memory frame
+		while (i < num_of_frames) {
+			if (!mem_frames[i].CheckIsOccupied()) {
+				mem_frames[i].AssignProcess(page_to_assign.process, &page_to_assign.pages[page_to_assign.current_Page]);
+				page_to_assign.pages[page_to_assign.current_Page].SetCurrentFrame(i);
+				isAssigned = true;
+				page_table[j].assigned_address = mem_frames[i].GetFrameAddress();
+				break;
+			}
+
 			i++;
 		}
 
-		LRU_DetachProcessFromMemory(mem_frames[less_used_process].CheckContents());
+		//if all occupied, find frame with least recently used process page
+		if (!isAssigned) {
+			int less_used_process = 0;
+			int i = 1;
 
-		mem_frames[less_used_process].AssignProcess(page_to_assign.process, &page_to_assign.pages[page_to_assign.current_Page]);
-		page_to_assign.pages[page_to_assign.current_Page].SetCurrentFrame(less_used_process);
-		page_table[j].assigned_address = mem_frames[less_used_process].GetFrameAddress();
+			while (i < num_of_frames) {
+				if (mem_frames[less_used_process].ReturnPageTally() > mem_frames[i].ReturnPageTally()) {
+					less_used_process = i;
+				}
+				i++;
+			}
+
+			LRU_DetachProcessFromMemory(mem_frames[less_used_process].CheckContents());
+
+			mem_frames[less_used_process].AssignProcess(page_to_assign.process, &page_to_assign.pages[page_to_assign.current_Page]);
+			page_to_assign.pages[page_to_assign.current_Page].SetCurrentFrame(less_used_process);
+			page_table[j].assigned_address = mem_frames[less_used_process].GetFrameAddress();
+		}
 	}
 }
 
 void Memory::LRU_DetachProcessFromMemory(string process) {
 	int j = 0;
-
-	for (Table page : page_table) {
-		if (page.process == process) {
-			break;
+	
+	if (page_table.size() > 0) {
+		for (Table page : page_table) {
+			if (page.process == process) {
+				break;
+			}
+			j++;
 		}
-		j++;
-	}
 
-	if (!page_table[j].pages[page_table[j].current_Page].IsPageInstructionsDone()) {
-		ofstream backing_store("csopesy-backing-store.txt");
+		if (!page_table[j].pages[page_table[j].current_Page].IsPageInstructionsDone()) {
+			ofstream backing_store("csopesy-backing-store.txt");
 
-		backing_store << page_table[j].process << " - " << page_table[j].current_Page << "\n";
+			backing_store << page_table[j].process << " - " << page_table[j].current_Page << "\n";
 
-		backing_store.close();
+			backing_store.close();
+		}
 	}
 }
 

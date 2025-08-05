@@ -104,7 +104,7 @@ void RRScheduler::SchedulerLoop() {
             }
 
             if (memory != nullptr) {
-                memory->GenerateMemoryReport(cpuCycles);
+                //memory->GenerateMemoryReport(cpuCycles);
             }
 
             // Generate new processes based on batchProcessFrequency
