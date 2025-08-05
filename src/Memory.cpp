@@ -128,6 +128,8 @@ void Memory::AddNewProcess(string name, vector<string> instructions, int process
 
 		temp.clear();
 	}
+
+	page_table.push_back(newRow);
 }
 
 void Memory::GenerateMemoryReport_File(int quantumCycle) {
@@ -248,6 +250,7 @@ void Memory::MoveToNextInstruction(string process) {
 	}
 
 	if (page_table[j].assigned_address > 0) {
+		SetNextPageInProcess(process);
 		page_table[j].pages[page_table[j].current_Page].SetCurrentInstruction();
 	}
 }
