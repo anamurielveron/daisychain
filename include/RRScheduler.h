@@ -1,6 +1,3 @@
-#ifndef RRSCHEDULER_H
-#define RRSCHEDULER_H
-
 #include <process.h>
 #include "Screen.h"
 #include "utils.h"
@@ -16,6 +13,10 @@
 #include "BaseScheduler.h"
 #include "Memory.h"
 #include <atomic>
+
+
+#ifndef RRSCHEDULER_H
+#define RRSCHEDULER_H
 
 class RRScheduler : public BaseScheduler {
 private:
@@ -53,9 +54,10 @@ public:
     void DisplayStatus(ostream& os) override;
     bool IsRunning() override;
     Screen* GetProcessByName(const string& name) override;
+
     void SetBatchEnabled(bool enabled) override;
+
     void CreateProcessWithInstructions(const string& processName, int processSize, const vector<string>& instructions) override;
-    void DisplayMemoryStats();
 };
 
 #endif // RRSCHEDULER_H

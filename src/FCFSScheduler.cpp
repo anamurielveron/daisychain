@@ -287,9 +287,5 @@ void FCFSScheduler::CreateProcessWithInstructions(const string& processName, int
     }
 }
 
-void FCFSScheduler::DisplayMemoryStats() {
-    memory->GenerateMemoryReport(cpuCycles);
-}
-
 
 

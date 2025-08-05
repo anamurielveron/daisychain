@@ -482,9 +482,6 @@ int main() {
         else if (command == "report-util") {
             reportUtil();
         }
-        else if (command == "vmstat") {
-            globalScheduler->DisplayMemoryStats();
-        }
         else if (command == "clear") {
             clear(); // Explicit clear command
             printSubtitle(); // Re-print subtitle after clear (banner is handled by clear())

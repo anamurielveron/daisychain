@@ -1,6 +1,3 @@
-#ifndef FCFSSCHEDULER_H
-#define FCFSSCHEDULER_H
-
 #include <process.h>
 #include <iostream>
 #include <string>
@@ -17,6 +14,10 @@ using namespace std;
 
 #include "Screen.h"
 #include "BaseScheduler.h"
+
+
+#ifndef FCFSSCHEDULER_H
+#define FCFSSCHEDULER_H
 
 #include <atomic>
 
@@ -53,9 +54,11 @@ public:
     void DisplayStatus(ostream& os) override;
     bool IsRunning() override;
     Screen* GetProcessByName(const string& name) override;
+
     void SetBatchEnabled(bool enabled) override;
+
     void CreateProcessWithInstructions(const string& processName, int processSize, const vector<string>& instructions) override;
-    void DisplayMemoryStats();
+
 };
 
 #endif // FCFSSCHEDULER_H

@@ -1,6 +1,3 @@
-#ifndef BASESCHEDULER_H
-#define BASESCHEDULER_H
-
 #include <process.h>
 #include <iostream>
 #include <string>
@@ -8,7 +5,9 @@
 #pragma once
 
 #include "Screen.h"
-#include "Memory.h"
+
+#ifndef BASESCHEDULER_H
+#define BASESCHEDULER_H
 
 class BaseScheduler {
 public:
@@ -23,9 +22,11 @@ public:
     // and to return nullptr if the process is finished, so the main thread
     // doesn't try to access a deallocated object.
     virtual Screen* GetProcessByName(const string& name) = 0;
+
     virtual void SetBatchEnabled(bool enabled) = 0; // Dummy generation
+
     virtual void CreateProcessWithInstructions(const string& name, int memSize, const vector<string>& instructions) = 0; // virtual function
-    virtual void DisplayMemoryStats() = 0;
+
 };
 
 #endif // BASESCHEDULER

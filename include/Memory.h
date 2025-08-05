@@ -44,7 +44,6 @@ public:
 	void LRU_AssignProcessToFrame(string process_index);
 	void LRU_DetachProcessFromMemory(string process);
 	void AddNewProcess(string name, vector<string> instructions, int process_size);
-	void GenerateMemoryReport_File(int quantumCycle);
 	void GenerateMemoryReport(int quantumCycle);
 	void SetNextPageInProcess(string process);
 	void MoveToNextInstruction(string process);
