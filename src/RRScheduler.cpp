@@ -114,7 +114,7 @@ void RRScheduler::SchedulerLoop() {
                     if (cores[i].isEmpty) {
                         string processName = "screen_" + padNumber(currentPidInc, 2);
                         unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
-                        unique_ptr<Screen> newProcess = std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName);
+                        unique_ptr<Screen> newProcess = std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName, memSize, memory);
                         cores[i].proc = std::move(newProcess);
                         cores[i].proc->SetCoreValue(i);
                         cores[i].qRemaining = quantum;
@@ -160,9 +160,38 @@ void RRScheduler::CreateProcess(bool isBatch, const string& userProvidedName) {
     }
 
     unsigned int instructions = minInstructions + (rand() % (maxInstructions - minInstructions + 1));
-    unique_ptr<Screen> newProcess = std::make_unique<Screen>(currentPidInc, instructions, getCurrentTimestamp(), processName);
+    string timestamp = getCurrentTimestamp();
+
+    // Assign random memory size for dummy processes only
+    int memSize = isBatch ? (rand() % 451 + 50) : 0; // 50�500 KB if batch, else 0
+
+    // Create the Screen (process) with random instructions + memory
+    unique_ptr<Screen> newProcess = std::make_unique<Screen>(
+        currentPidInc, instructions, timestamp, processName, memSize, memory);
+
+    /*
+    // ? CHECKER: Print process info if batch/dummy
+    if (isBatch) {
+        cout << "\n=== DUMMY PROCESS CREATED ===" << endl;
+        cout << "Process Name : " << processName << endl;
+        cout << "PID          : " << currentPidInc << endl;
+        cout << "Instructions : " << instructions << endl;
+        cout << "Memory Size  : " << memSize << " KB" << endl;
+
+        cout << "--- Instruction List ---" << endl;
+        for (const string& instr : newProcess->GetInstructionVector()) {
+            cout << "  " << instr << endl;
+        }
+
+        cout << "--- Variable List ---" << endl;
+        newProcess->PrintVariables();  // Uses your own PrintVariables() method
+        cout << "===========================\n" << endl;
+    }
+    */
+
     currentPidInc++;
 
+    /*
     bool assigned = false;
     for (int i = 0; i < numCores; i++) {
         if (cores[i].isEmpty) {
@@ -178,6 +207,7 @@ void RRScheduler::CreateProcess(bool isBatch, const string& userProvidedName) {
     if (!assigned) {
         readyQueue.push(std::move(newProcess));
     }
+    */
 }
 
 void RRScheduler::DisplayStatus(ostream& os) {
@@ -278,6 +308,7 @@ Screen* RRScheduler::GetProcessByName(const string& name) {
 
     return found;
 }
+
 
 void RRScheduler::SetBatchEnabled(bool enabled) {
     batchProcessFrequency = enabled ? 1 : 0;
