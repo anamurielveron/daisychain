@@ -95,6 +95,9 @@ bool readConfig(Config& config) {
 }
 
 void initialize() {
+
+    Memory mem(16384, 4096);
+
     printColor("\"initialize\" command recognized. Initializing scheduler...\n", YELLOW);
     if (scheduler_initialized.load()) { // Use load for atomic boolean
         printColor("Scheduler already initialized. Please stop it first if you want to re-initialize.\n", YELLOW);
